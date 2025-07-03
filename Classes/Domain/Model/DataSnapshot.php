@@ -6,7 +6,7 @@ namespace Cpsit\T3hauler\Domain\Model;
 
 /**
  * Domain model for database state snapshots
- * 
+ *
  * Represents a snapshot of table data at a specific point in time
  */
 class DataSnapshot

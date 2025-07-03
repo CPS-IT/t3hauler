@@ -47,9 +47,9 @@ class ChangeDetectionServiceTest extends TestCase
     #[Test]
     public function detectTableChangesReturnsNoBaselineWhenSnapshotNotFound(): void
     {
-        $this->hashUtility->expects($this->once())->method('calculateTableHash')
+        $this->hashUtility->expects(self::once())->method('calculateTableHash')
             ->willReturn('current_hash');
-        $this->snapshotRepository->expects($this->once())->method('findLatestByTableName')
+        $this->snapshotRepository->expects(self::once())->method('findLatestByTableName')
             ->willReturn(null);
 
         $result = $this->subject->detectTableChanges('pages');
@@ -66,9 +66,9 @@ class ChangeDetectionServiceTest extends TestCase
         $currentHash = 'same_hash';
         $snapshot = new DataSnapshot('test_id', 'pages', $currentHash);
 
-        $this->hashUtility->expects($this->once())->method('calculateTableHash')
+        $this->hashUtility->expects(self::once())->method('calculateTableHash')
             ->willReturn($currentHash);
-        $this->snapshotRepository->expects($this->once())->method('findLatestByTableName')
+        $this->snapshotRepository->expects(self::once())->method('findLatestByTableName')
             ->willReturn($snapshot);
 
         $result = $this->subject->detectTableChanges('pages');
@@ -86,9 +86,9 @@ class ChangeDetectionServiceTest extends TestCase
         $baselineHash = 'old_hash';
         $snapshot = new DataSnapshot('test_id', 'pages', $baselineHash);
 
-        $this->hashUtility->expects($this->once())->method('calculateTableHash')
+        $this->hashUtility->expects(self::once())->method('calculateTableHash')
             ->willReturn($currentHash);
-        $this->snapshotRepository->expects($this->once())->method('findLatestByTableName')
+        $this->snapshotRepository->expects(self::once())->method('findLatestByTableName')
             ->willReturn($snapshot);
 
         $result = $this->subject->detectTableChanges('pages');
@@ -102,9 +102,9 @@ class ChangeDetectionServiceTest extends TestCase
     #[Test]
     public function hasChangesReturnsTrueWhenTablesHaveChanges(): void
     {
-        $this->hashUtility->expects($this->exactly(2))->method('calculateTableHash')
+        $this->hashUtility->expects(self::exactly(2))->method('calculateTableHash')
             ->willReturnOnConsecutiveCalls('hash1', 'hash2');
-        $this->snapshotRepository->expects($this->exactly(2))->method('findLatestByTableName')
+        $this->snapshotRepository->expects(self::exactly(2))->method('findLatestByTableName')
             ->willReturnOnConsecutiveCalls(
                 new DataSnapshot('id1', 'pages', 'old_hash1'),
                 new DataSnapshot('id2', 'tt_content', 'hash2') // This one matches
@@ -118,9 +118,9 @@ class ChangeDetectionServiceTest extends TestCase
     #[Test]
     public function hasChangesReturnsFalseWhenNoTablesHaveChanges(): void
     {
-        $this->hashUtility->expects($this->exactly(2))->method('calculateTableHash')
+        $this->hashUtility->expects(self::exactly(2))->method('calculateTableHash')
             ->willReturnOnConsecutiveCalls('hash1', 'hash2');
-        $this->snapshotRepository->expects($this->exactly(2))->method('findLatestByTableName')
+        $this->snapshotRepository->expects(self::exactly(2))->method('findLatestByTableName')
             ->willReturnOnConsecutiveCalls(
                 new DataSnapshot('id1', 'pages', 'hash1'),
                 new DataSnapshot('id2', 'tt_content', 'hash2')
@@ -135,11 +135,11 @@ class ChangeDetectionServiceTest extends TestCase
     public function createTableSnapshotCreatesAndSavesSnapshot(): void
     {
         $currentHash = 'test_hash';
-        $this->hashUtility->expects($this->once())->method('calculateTableHash')
+        $this->hashUtility->expects(self::once())->method('calculateTableHash')
             ->willReturn($currentHash);
 
         $savedSnapshot = new DataSnapshot('test_id', 'pages', $currentHash);
-        $this->snapshotRepository->expects($this->once())->method('save')
+        $this->snapshotRepository->expects(self::once())->method('save')
             ->willReturn($savedSnapshot);
 
         $result = $this->subject->createTableSnapshot('pages');
@@ -152,9 +152,9 @@ class ChangeDetectionServiceTest extends TestCase
     #[Test]
     public function getChangesSummaryReturnsCorrectCounts(): void
     {
-        $this->hashUtility->expects($this->exactly(2))->method('calculateTableHash')
+        $this->hashUtility->expects(self::exactly(2))->method('calculateTableHash')
             ->willReturnOnConsecutiveCalls('new_hash', 'same_hash');
-        $this->snapshotRepository->expects($this->exactly(2))->method('findLatestByTableName')
+        $this->snapshotRepository->expects(self::exactly(2))->method('findLatestByTableName')
             ->willReturnOnConsecutiveCalls(
                 new DataSnapshot('id1', 'pages', 'old_hash'), // Changed
                 new DataSnapshot('id2', 'tt_content', 'same_hash') // Unchanged

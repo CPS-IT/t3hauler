@@ -9,7 +9,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Configuration service for T3Hauler
- * 
+ *
  * Loads and manages configuration from configurable paths
  */
 class T3HaulerConfiguration
@@ -20,8 +20,7 @@ class T3HaulerConfiguration
     public function __construct(
         private readonly array $configurationPaths = [],
         private readonly array $migrationPaths = []
-    ) {
-    }
+    ) {}
 
     /**
      * Get configuration value by path (dot notation)
@@ -29,17 +28,17 @@ class T3HaulerConfiguration
     public function get(string $path, mixed $default = null): mixed
     {
         $this->ensureConfigurationLoaded();
-        
+
         $keys = explode('.', $path);
         $value = $this->config;
-        
+
         foreach ($keys as $key) {
             if (!is_array($value) || !array_key_exists($key, $value)) {
                 return $default;
             }
             $value = $value[$key];
         }
-        
+
         return $value;
     }
 
@@ -61,7 +60,7 @@ class T3HaulerConfiguration
     }
 
     /**
-     * Get migration paths  
+     * Get migration paths
      */
     public function getMigrationPaths(): array
     {
@@ -134,11 +133,11 @@ class T3HaulerConfiguration
         }
 
         $this->config = [];
-        
+
         foreach ($this->configurationPaths as $configPath) {
             $this->loadConfigurationFromPath($configPath);
         }
-        
+
         $this->loaded = true;
     }
 

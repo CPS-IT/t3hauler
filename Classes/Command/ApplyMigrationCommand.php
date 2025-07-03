@@ -14,7 +14,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Command to apply migration with validation
- * 
+ *
  * Note: Full implementation will be completed in Phase 3
  */
 #[AsCommand(name: 't3hauler:apply')]
@@ -82,7 +82,7 @@ class ApplyMigrationCommand extends Command
             'Validate target environment integrity',
             'Apply T3D imports with TYPO3 impexp',
             'Create post-migration snapshots',
-            'Rollback capability on failure'
+            'Rollback capability on failure',
         ]);
 
         return Command::SUCCESS;

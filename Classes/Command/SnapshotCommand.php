@@ -107,7 +107,7 @@ class SnapshotCommand extends Command
                 $snapshot->getTableName(),
                 $snapshot->getIdentifier(),
                 substr($snapshot->getHash(), 0, 12) . '...',
-                $snapshot->getCreatedAt()->format('Y-m-d H:i:s')
+                $snapshot->getCreatedAt()->format('Y-m-d H:i:s'),
             ];
         }
 
@@ -131,7 +131,7 @@ class SnapshotCommand extends Command
         }
 
         $io->note("This will delete all snapshots older than {$keepDays} days.");
-        
+
         if (!$io->confirm('Are you sure you want to proceed?', false)) {
             $io->note('Cleanup cancelled.');
             return Command::SUCCESS;

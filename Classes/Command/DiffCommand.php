@@ -91,18 +91,18 @@ class DiffCommand extends Command
                 [
                     'Changed',
                     count($summary['changed_tables']),
-                    implode(', ', $summary['changed_tables'])
+                    implode(', ', $summary['changed_tables']),
                 ],
                 [
                     'Unchanged',
                     count($summary['unchanged_tables']),
-                    implode(', ', $summary['unchanged_tables'])
+                    implode(', ', $summary['unchanged_tables']),
                 ],
                 [
                     'No Baseline',
                     count($summary['no_baseline_tables']),
-                    implode(', ', $summary['no_baseline_tables'])
-                ]
+                    implode(', ', $summary['no_baseline_tables']),
+                ],
             ]
         );
 
@@ -146,7 +146,7 @@ class DiffCommand extends Command
                 $status,
                 $changed ? 'Yes' : 'No',
                 substr($tableChanges['current_hash'], 0, 12) . '...',
-                $tableChanges['baseline_hash'] ? substr($tableChanges['baseline_hash'], 0, 12) . '...' : 'N/A'
+                $tableChanges['baseline_hash'] ? substr($tableChanges['baseline_hash'], 0, 12) . '...' : 'N/A',
             ];
         }
 

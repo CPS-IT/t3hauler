@@ -17,8 +17,7 @@ class DataSnapshotRepository
 
     public function __construct(
         private readonly ConnectionPool $connectionPool
-    ) {
-    }
+    ) {}
 
     /**
      * Find snapshot by identifier

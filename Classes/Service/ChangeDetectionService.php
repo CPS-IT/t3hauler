@@ -11,7 +11,7 @@ use Cpsit\T3hauler\Utility\HashUtility;
 
 /**
  * Service for detecting changes in database tables
- * 
+ *
  * Compares current table state with stored snapshots to identify changes
  */
 class ChangeDetectionService
@@ -20,8 +20,7 @@ class ChangeDetectionService
         private readonly HashUtility $hashUtility,
         private readonly DataSnapshotRepository $snapshotRepository,
         private readonly T3HaulerConfiguration $configuration
-    ) {
-    }
+    ) {}
 
     /**
      * Detect changes for all configured tables
@@ -30,16 +29,16 @@ class ChangeDetectionService
     {
         $enabledTables = $this->configuration->getEnabledTables();
         $excludedFields = $this->configuration->getExcludedFields();
-        
+
         $changes = [];
-        
+
         foreach ($enabledTables as $tableName) {
             $tableChanges = $this->detectTableChanges($tableName, $excludedFields, $baselineIdentifier);
             if (!empty($tableChanges)) {
                 $changes[$tableName] = $tableChanges;
             }
         }
-        
+
         return $changes;
     }
 
@@ -47,7 +46,7 @@ class ChangeDetectionService
      * Detect changes for a specific table
      */
     public function detectTableChanges(
-        string $tableName, 
+        string $tableName,
         array $excludedFields = [],
         ?string $baselineIdentifier = null
     ): array {
@@ -60,7 +59,7 @@ class ChangeDetectionService
         );
 
         // Get baseline snapshot
-        $baselineSnapshot = $baselineIdentifier 
+        $baselineSnapshot = $baselineIdentifier
             ? $this->snapshotRepository->findByIdentifier($baselineIdentifier)
             : $this->snapshotRepository->findLatestByTableName($tableName);
 
@@ -78,7 +77,7 @@ class ChangeDetectionService
 
         return [
             'status' => $hasChanges ? 'changed' : 'unchanged',
-            'message' => $hasChanges 
+            'message' => $hasChanges
                 ? 'Changes detected in table ' . $tableName
                 : 'No changes detected in table ' . $tableName,
             'current_hash' => $currentHash,
@@ -96,12 +95,12 @@ class ChangeDetectionService
         $enabledTables = $this->configuration->getEnabledTables();
         $excludedFields = $this->configuration->getExcludedFields();
         $snapshots = [];
-        
+
         foreach ($enabledTables as $tableName) {
             $snapshot = $this->createTableSnapshot($tableName, $excludedFields, $identifier, $migrationVersion);
             $snapshots[] = $snapshot;
         }
-        
+
         return $snapshots;
     }
 
@@ -129,7 +128,7 @@ class ChangeDetectionService
 
         // Create snapshot
         $snapshot = new DataSnapshot($identifier, $tableName, $currentHash);
-        
+
         if ($migrationVersion !== null) {
             $snapshot->setMigrationVersion($migrationVersion);
         }
@@ -148,13 +147,13 @@ class ChangeDetectionService
     public function hasChanges(?string $baselineIdentifier = null): bool
     {
         $changes = $this->detectChanges($baselineIdentifier);
-        
+
         foreach ($changes as $tableChanges) {
             if ($tableChanges['changed'] === true) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -167,7 +166,7 @@ class ChangeDetectionService
         $changedTables = [];
         $unchangedTables = [];
         $noBaselineTables = [];
-        
+
         foreach ($changes as $tableName => $tableChanges) {
             switch ($tableChanges['status']) {
                 case 'changed':
@@ -181,7 +180,7 @@ class ChangeDetectionService
                     break;
             }
         }
-        
+
         return [
             'total_tables' => count($changes),
             'changed_tables' => $changedTables,

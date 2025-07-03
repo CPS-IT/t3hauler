@@ -15,7 +15,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Command to create migration from detected changes
- * 
+ *
  * Note: Full implementation will be completed in Phase 2
  */
 #[AsCommand(name: 't3hauler:create')]
@@ -70,7 +70,7 @@ class CreateMigrationCommand extends Command
         try {
             // Check if there are any changes first
             $summary = $this->changeDetectionService->getChangesSummary();
-            
+
             if (!$summary['has_changes']) {
                 $io->info('No changes detected since last snapshot. Nothing to migrate.');
                 return Command::SUCCESS;
@@ -91,7 +91,7 @@ class CreateMigrationCommand extends Command
                 'Generate Doctrine migration files',
                 'Export changed records to T3D format',
                 'Create migration metadata',
-                'Store migration in configured path'
+                'Store migration in configured path',
             ]);
 
             return Command::SUCCESS;
@@ -105,11 +105,11 @@ class CreateMigrationCommand extends Command
     private function showChangesSummary(SymfonyStyle $io, array $summary): void
     {
         $rows = [];
-        
+
         if (!empty($summary['changed_tables'])) {
             $rows[] = ['Changed', count($summary['changed_tables']), implode(', ', $summary['changed_tables'])];
         }
-        
+
         if (!empty($summary['no_baseline_tables'])) {
             $rows[] = ['No Baseline', count($summary['no_baseline_tables']), implode(', ', $summary['no_baseline_tables'])];
         }

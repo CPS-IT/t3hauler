@@ -25,7 +25,7 @@ class T3HaulerConfigurationTest extends TestCase
     public function getConfigurationPathsReturnsConfiguredPaths(): void
     {
         $result = $this->subject->getConfigurationPaths();
-        
+
         self::assertSame(['/path/to/config'], $result);
     }
 
@@ -33,7 +33,7 @@ class T3HaulerConfigurationTest extends TestCase
     public function getMigrationPathsReturnsConfiguredPaths(): void
     {
         $result = $this->subject->getMigrationPaths();
-        
+
         self::assertSame(['/path/to/migrations'], $result);
     }
 
@@ -41,7 +41,7 @@ class T3HaulerConfigurationTest extends TestCase
     public function getReturnsDefaultValueWhenConfigurationNotSet(): void
     {
         $result = $this->subject->get('nonexistent.path', 'default');
-        
+
         self::assertSame('default', $result);
     }
 
@@ -49,7 +49,7 @@ class T3HaulerConfigurationTest extends TestCase
     public function getEnabledTablesReturnsDefaultWhenNotConfigured(): void
     {
         $result = $this->subject->getEnabledTables();
-        
+
         self::assertSame(['pages', 'tt_content'], $result);
     }
 
@@ -57,7 +57,7 @@ class T3HaulerConfigurationTest extends TestCase
     public function getExcludedFieldsReturnsDefaultWhenNotConfigured(): void
     {
         $result = $this->subject->getExcludedFields();
-        
+
         self::assertSame(['tstamp', 'crdate', 'cruser_id'], $result);
     }
 
@@ -65,7 +65,7 @@ class T3HaulerConfigurationTest extends TestCase
     public function getHashAlgorithmReturnsDefaultWhenNotConfigured(): void
     {
         $result = $this->subject->getHashAlgorithm();
-        
+
         self::assertSame('sha256', $result);
     }
 
@@ -73,7 +73,7 @@ class T3HaulerConfigurationTest extends TestCase
     public function getAllReturnsEmptyArrayWhenNoConfigurationLoaded(): void
     {
         $result = $this->subject->getAll();
-        
+
         self::assertSame([], $result);
     }
 
@@ -81,7 +81,7 @@ class T3HaulerConfigurationTest extends TestCase
     public function getStorageConfigReturnsEmptyArrayWhenNotConfigured(): void
     {
         $result = $this->subject->getStorageConfig();
-        
+
         self::assertSame([], $result);
     }
 
@@ -89,7 +89,7 @@ class T3HaulerConfigurationTest extends TestCase
     public function getIntegrityConfigReturnsEmptyArrayWhenNotConfigured(): void
     {
         $result = $this->subject->getIntegrityConfig();
-        
+
         self::assertSame([], $result);
     }
 
@@ -97,7 +97,7 @@ class T3HaulerConfigurationTest extends TestCase
     public function getDetectionConfigReturnsEmptyArrayWhenNotConfigured(): void
     {
         $result = $this->subject->getDetectionConfig();
-        
+
         self::assertSame([], $result);
     }
 
@@ -105,7 +105,7 @@ class T3HaulerConfigurationTest extends TestCase
     public function getSiteConfigReturnsEmptyArrayWhenNotConfigured(): void
     {
         $result = $this->subject->getSiteConfig();
-        
+
         self::assertSame([], $result);
     }
 }
