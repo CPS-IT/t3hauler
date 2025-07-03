@@ -196,7 +196,7 @@ class ChangeDetectionService
     public function compareSnapshots(DataSnapshot $snapshot1, DataSnapshot $snapshot2): array
     {
         if ($snapshot1->getTableName() !== $snapshot2->getTableName()) {
-            throw new \InvalidArgumentException('Cannot compare snapshots of different tables');
+            throw new \InvalidArgumentException('Cannot compare snapshots of different tables', 1909055643);
         }
 
         $hasChanges = !$snapshot1->matchesHash($snapshot2->getHash());
