@@ -137,14 +137,14 @@ Classes/
 **Content/Record Migrations** → **TYPO3 impexp**
 ```php
 // Handles: pages, content elements, files, sys_template, etc.
-class ContentMigration extends AbstractDataMigration 
+class ContentMigration extends AbstractDataMigration
 {
-    public function up(Schema $schema): void 
+    public function up(Schema $schema): void
     {
         $this->exportRecords(['pages' => [1, 2, 3], 'tt_content' => [15, 16]]);
     }
-    
-    public function down(Schema $schema): void 
+
+    public function down(Schema $schema): void
     {
         $this->removeRecords(['pages' => [1, 2, 3], 'tt_content' => [15, 16]]);
     }
@@ -154,9 +154,9 @@ class ContentMigration extends AbstractDataMigration
 **Schema Migrations** → **Doctrine Migrations**
 ```php
 // Handles: table structure, indexes, constraints
-class AddCustomFieldMigration extends AbstractMigration 
+class AddCustomFieldMigration extends AbstractMigration
 {
-    public function up(Schema $schema): void 
+    public function up(Schema $schema): void
     {
         $table = $schema->getTable('pages');
         $table->addColumn('custom_field', 'string', ['length' => 255]);
@@ -167,9 +167,9 @@ class AddCustomFieldMigration extends AbstractMigration
 **Complex Data Transformations** → **T3ImportExport**
 ```php
 // Handles: CSV imports, data format conversions, complex mappings
-class DataTransformationMigration extends AbstractDataMigration 
+class DataTransformationMigration extends AbstractDataMigration
 {
-    public function up(Schema $schema): void 
+    public function up(Schema $schema): void
     {
         $this->executeT3ImportExportTask('importLegacyData', [
             'source' => 'fileadmin/migration/legacy_data.csv',
@@ -182,7 +182,7 @@ class DataTransformationMigration extends AbstractDataMigration
 #### 2. Layered Architecture Benefits
 
 - **Doctrine Migrations**: Provides versioning, execution order, rollback infrastructure
-- **TYPO3 impexp**: Handles TYPO3-specific record serialization and relations  
+- **TYPO3 impexp**: Handles TYPO3-specific record serialization and relations
 - **T3ImportExport**: Provides complex data transformation pipeline
 - **T3Hauler**: Orchestrates all components and adds change detection + integrity checks
 
@@ -258,7 +258,7 @@ if ($sourceHash !== $targetHash) {
    - Add change detection for content records
    - Implement T3D file handling within migrations
 
-2. **T3ImportExport Adapter**  
+2. **T3ImportExport Adapter**
    - Integrate transfer task execution
    - Support YAML configuration within migrations
    - Handle complex data transformations
@@ -278,7 +278,7 @@ if ($sourceHash !== $targetHash) {
 
 2. **Migration Templates**
    - Content migration templates
-   - Schema migration templates  
+   - Schema migration templates
    - Data transformation templates
 
 ### Phase 4: Backend Module & Integrity System (Week 6)
@@ -311,7 +311,7 @@ if ($sourceHash !== $targetHash) {
 # Show changes since last migration
 ddev typo3 t3hauler:diff
 
-# Generate migration from detected changes  
+# Generate migration from detected changes
 ddev typo3 t3hauler:generate "Add news content" --detect-changes
 
 # Execute specific migration
@@ -377,7 +377,7 @@ class Version20241203130000 extends AbstractDataMigration
         // Schema change first
         $table = $schema->getTable('tx_news_domain_model_news');
         $table->addColumn('imported_id', 'integer', ['notnull' => false]);
-        
+
         // Then complex data import using T3ImportExport
         $this->executeT3ImportExportTask('importLegacyNews', [
             'source' => [
@@ -519,21 +519,21 @@ t3hauler:
     migrationPath: '%kernel.project_dir%/packages/zug-sitepackage/Migrations/'
     dataPath: '%kernel.project_dir%/packages/zug-sitepackage/Migrations/data/'
     configPath: '%kernel.project_dir%/packages/zug-sitepackage/Configuration/T3Hauler/'
-  
+
   integrity:
     hashAlgorithm: 'sha256'
     excludeTables: ['sys_log', 'sys_history', 'be_sessions', 'fe_sessions']
     includeTables: ['pages', 'tt_content', 'sys_file', 'sys_file_reference']
-  
+
   migration:
     autoSnapshot: true
     requireConfirmation: true
     namespace: 'ZugSitepackage\\Migration'
-    
+
   detection:
     enabledTables: ['pages', 'tt_content', 'sys_template', 'tx_news_domain_model_news']
     excludeFields: ['tstamp', 'crdate', 'cruser_id']
-    
+
   sites:
     default: 'zug'
     available: ['zug', 'kei', 'ptx', 'knk', 'life']
@@ -546,7 +546,7 @@ t3hauler:
 site:
   identifier: 'zug'
   rootPageId: 1
-  
+
 migration:
   enabledTables:
     - pages
@@ -554,7 +554,7 @@ migration:
     - tx_news_domain_model_news
     - tx_zugproject_domain_model_project
     - tx_zugsitepackage_domain_model_publication
-    
+
   tableConfigs:
     pages:
       excludeFields: ['tstamp', 'crdate', 'deleted']
@@ -628,13 +628,13 @@ use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 class ChangeDetectionServiceTest extends UnitTestCase
 {
     private ChangeDetectionService $subject;
-    
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->subject = new ChangeDetectionService();
     }
-    
+
     /**
      * @test
      */
@@ -657,7 +657,7 @@ use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 class CreateMigrationCommandTest extends FunctionalTestCase
 {
     protected array $testExtensionsToLoad = ['cpsit/t3hauler'];
-    
+
     /**
      * @test
      */
@@ -674,7 +674,7 @@ class CreateMigrationCommandTest extends FunctionalTestCase
 ```bash
 # Use from project root or vendor/cpsit/t3hauler
 composer lint      # Runs all linting (composer, editorconfig, PHP, TypoScript)
-composer fix       # Fixes all fixable issues  
+composer fix       # Fixes all fixable issues
 composer test      # Runs unit and functional tests
 composer sca       # Static code analysis (PHPStan level 6)
 ```
@@ -683,7 +683,7 @@ composer sca       # Static code analysis (PHPStan level 6)
 ```yaml
 includes:
     - %currentWorkingDirectory%/../../rector.php
-    
+
 parameters:
     level: 6
     paths:
@@ -786,7 +786,7 @@ parameters:
 ```
 Week 1: Core Infrastructure + Change Detection
 ├── Day 1-2: Configuration service and DI setup
-├── Day 3-4: Change detection and snapshot system  
+├── Day 3-4: Change detection and snapshot system
 └── Day 5: Unit tests and initial CLI structure
 
 Week 2: Integration with TYPO3 ImpExp
@@ -847,7 +847,7 @@ ddev typo3 t3hauler:snapshot --create
 
 1. **Functional Requirements** (Full)
    - ✅ Advanced conflict detection and resolution
-   - ✅ Backend module for visual management  
+   - ✅ Backend module for visual management
    - ✅ Full rollback capabilities
    - ✅ Multi-library integration (Doctrine + ImpExp + T3ImportExport)
 
@@ -862,7 +862,7 @@ ddev typo3 t3hauler:snapshot --create
 ### MVP Development
 
 1. **Week 1**: Set up core infrastructure and change detection
-2. **Week 2**: Integrate TYPO3 ImpExp and migration generation  
+2. **Week 2**: Integrate TYPO3 ImpExp and migration generation
 3. **Week 3**: Implement CLI commands and user interface
 4. **Week 4**: Project integration and multi-site configuration
 
