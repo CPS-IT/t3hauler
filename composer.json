@@ -11,8 +11,8 @@
     ],
     "require": {
         "doctrine/dbal": "^4.0",
-        "symfony/console": "^6.0|^7.0",
-        "symfony/yaml": "^6.0|^7.0",
+        "symfony/console": "^6.0 || ^7.0",
+        "symfony/yaml": "^6.0 || ^7.0",
         "typo3/cms-core": "^13.4"
     },
     "require-dev": {
