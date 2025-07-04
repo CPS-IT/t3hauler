@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "draft/0.1.0/export.schema.json",
+  "title": "Export",
+  "description": "Describes an export from a TYPO3 instance",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "description": "Metadata about the export.",
+      "type": "object",
+      "properties": {
+        "createdDateTime": {
+          "description": "Date and time of creation in ISO 8601 format",
+          "type": "string",
+          "pattern": "/^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d(\\.\\d+)?(([+-]\\d\\d:\\d\\d)|Z)?$/i"
+        },
+        "exportedTables":{
+          "description": "The names of tables affected by this export",
+          "type": "array"
+        },
+        "totalRecords": {
+          "description": "The number of records in this export over all tables",
+          "type": "number",
+          "minimum": 1
+        }
+      }
+    },
+    "records": {
+      "description": "Exported records",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    },
+    "$defs": {
+      "record": {
+        "description": "A single record",
+        "type": "object",
+        "properties": {
+          "table": {
+            "description": "The full table name of this record",
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
+

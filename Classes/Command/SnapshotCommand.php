@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Command;
 
+use Cpsit\T3hauler\Domain\Model\DataSnapshot;
+use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -15,7 +17,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 /**
  * Command to create or manage database snapshots
  */
-#[AsCommand(name: 't3hauler:snapshot')]
+#[AsCommand(
+    name: 't3hauler:snapshot',
+    description: 'Create or manage database snapshots',
+    aliases: ['haul:snapshot']
+)]
 class SnapshotCommand extends Command
 {
     public function __construct(
@@ -88,7 +94,7 @@ class SnapshotCommand extends Command
         $io->section('Creating Snapshot');
 
         if ($identifier === null) {
-            $identifier = 'baseline_' . date('YmdHis');
+            $identifier = DataSnapshot::generateIdentifier(DataSnapshotRepository::TABLE_NAME);
         }
 
         $io->note("Creating snapshot with identifier: {$identifier}");

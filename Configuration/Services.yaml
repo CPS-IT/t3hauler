@@ -10,32 +10,11 @@ services:
     exclude: '../Classes/Domain/Model/*'
 
   # Commands with proper DI
-  Cpsit\T3hauler\Command\DiffCommand:
-    tags:
-      - name: 'console.command'
-        command: 't3hauler:diff'
-        description: 'Show pending changes since last snapshot'
-        schedulable: false
-
-  Cpsit\T3hauler\Command\CreateMigrationCommand:
-    tags:
-      - name: 'console.command'
-        command: 't3hauler:create'
-        description: 'Create migration from detected changes'
-        schedulable: false
-
   Cpsit\T3hauler\Command\ApplyMigrationCommand:
     tags:
       - name: 'console.command'
         command: 't3hauler:apply'
         description: 'Apply migration with validation'
-        schedulable: false
-
-  Cpsit\T3hauler\Command\SnapshotCommand:
-    tags:
-      - name: 'console.command'
-        command: 't3hauler:snapshot'
-        description: 'Create or manage database snapshots'
         schedulable: false
 
   # Core services
@@ -44,15 +23,36 @@ services:
       $hashUtility: '@Cpsit\T3hauler\Utility\HashUtility'
       $snapshotRepository: '@Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository'
 
+  # Migration services
+  Cpsit\T3hauler\Service\MigrationService:
+    arguments:
+      $changeDetectionService: '@Cpsit\T3hauler\Service\ChangeDetectionService'
+      $exportService: '@Cpsit\T3hauler\Service\ExportService'
+      $migrationRepository: '@Cpsit\T3hauler\Domain\Repository\MigrationRepository'
+      $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
+      $hashUtility: '@Cpsit\T3hauler\Utility\HashUtility'
+
+  Cpsit\T3hauler\Service\ExportService:
+    arguments:
+      $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
+      $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
+
+  Cpsit\T3hauler\Service\ImportService:
+    arguments:
+      $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
+      $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
+
   Cpsit\T3hauler\Service\IntegrityService:
     arguments:
+      $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
       $hashUtility: '@Cpsit\T3hauler\Utility\HashUtility'
+      $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
 
   # Repositories with proper database connection
   Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository:
     arguments:
       $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
 
-  Cpsit\T3hauler\Domain\Repository\ChangeSetRepository:
+  Cpsit\T3hauler\Domain\Repository\MigrationRepository:
     arguments:
       $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'

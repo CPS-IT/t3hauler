@@ -13,7 +13,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
  */
 class DataSnapshotRepository
 {
-    private const TABLE_NAME = 'tx_t3hauler_snapshots';
+    public const string TABLE_NAME = 'tx_t3hauler_snapshots';
 
     public function __construct(
         private readonly ConnectionPool $connectionPool

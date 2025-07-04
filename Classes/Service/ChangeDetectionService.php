@@ -96,27 +96,31 @@ class ChangeDetectionService
         $excludedFields = $this->configuration->getExcludedFields();
         $snapshots = [];
 
+        $hashes = [];
         foreach ($enabledTables as $tableName) {
-            $snapshot = $this->createTableSnapshot($tableName, $excludedFields, $identifier, $migrationVersion);
+            $snapshot = $this->createTableSnapshot($tableName, $excludedFields, $migrationVersion);
             $snapshots[] = $snapshot;
+            $hashes[] = $snapshot->getHash();
         }
 
+        $setHash = hash($this->configuration->getHashAlgorithm(), implode('|', $hashes));
+        $snapshotSet = new DataSnapshot(
+            $identifier,
+            DataSnapshotRepository::TABLE_NAME,
+            $setHash);
+        $this->snapshotRepository->save($snapshotSet);
         return $snapshots;
     }
 
     /**
-     * Create snapshot for a specific table
+     * Create a snapshot for a specific table
      */
     public function createTableSnapshot(
         string $tableName,
         array $excludedFields = [],
-        ?string $identifier = null,
         ?string $migrationVersion = null
     ): DataSnapshot {
-        // Generate identifier if not provided
-        if ($identifier === null) {
-            $identifier = DataSnapshot::generateIdentifier($tableName);
-        }
+        $identifier = DataSnapshot::generateIdentifier($tableName);
 
         // Calculate current hash
         $currentHash = $this->hashUtility->calculateTableHash(
@@ -158,7 +162,7 @@ class ChangeDetectionService
     }
 
     /**
-     * Get summary of changes
+     * Get a summary of changes
      */
     public function getChangesSummary(?string $baselineIdentifier = null): array
     {

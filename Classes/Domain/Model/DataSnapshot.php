@@ -148,7 +148,7 @@ class DataSnapshot
      */
     public static function generateIdentifier(string $tableName, ?string $suffix = null): string
     {
-        $base = $tableName . '_' . date('YmdHis');
+        $base = $tableName . '_' . date('Y-m-d_H:i:s') . '_' . uuid_create();
         return $suffix ? $base . '_' . $suffix : $base;
     }
 

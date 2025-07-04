@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Command;
 
-use Cpsit\T3hauler\Service\ChangeDetectionService;
+use Cpsit\T3hauler\Service\MigrationService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -18,11 +18,15 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * Note: Full implementation will be completed in Phase 2
  */
-#[AsCommand(name: 't3hauler:create')]
+#[AsCommand(
+    name: 't3hauler:create',
+    description: 'Create migration from detected changes',
+    aliases: ['haul:create']
+)]
 class CreateMigrationCommand extends Command
 {
     public function __construct(
-        private readonly ChangeDetectionService $changeDetectionService
+        private readonly MigrationService $migrationService
     ) {
         parent::__construct();
     }
@@ -68,36 +72,84 @@ class CreateMigrationCommand extends Command
         $io->title('T3Hauler - Create Migration');
 
         try {
-            // Check if there are any changes first
-            $summary = $this->changeDetectionService->getChangesSummary();
+            // Create migration using the service
+            $result = $this->migrationService->createMigration(
+                $description,
+                $author,
+                $site,
+                $dryRun
+            );
 
-            if (!$summary['has_changes']) {
-                $io->info('No changes detected since last snapshot. Nothing to migrate.');
+            if (!$result['success']) {
+                $io->error($result['message']);
+                return Command::FAILURE;
+            }
+
+            if ($dryRun) {
+                $io->success('DRY RUN: Migration would be created successfully');
+                $io->section('Migration Details');
+                $migration = $result['migration'];
+                $io->definitionList(
+                    ['Migration ID' => $migration['migration_id']],
+                    ['Description' => $migration['description']],
+                    ['Author' => $migration['author']],
+                    ['Site' => $migration['site'] ?? 'N/A'],
+                    ['Export File' => $migration['export_file']],
+                    ['Format' => $migration['format']],
+                    ['Metadata File' => $migration['metadata_file']]
+                );
+
+                $this->showChangesSummary($io, $migration['changes']);
+
                 return Command::SUCCESS;
             }
 
-            $io->section('Detected Changes');
-            $this->showChangesSummary($io, $summary);
+            // Show success message for actual creation
+            $io->success($result['message']);
 
-            if ($dryRun) {
-                $io->note('DRY RUN MODE - No files will be created');
+            $migration = $result['migration'];
+            $io->section('Migration Created');
+            $io->definitionList(
+                ['Migration ID' => $migration->getMigrationId()],
+                ['Name' => $migration->getName()],
+                ['Author' => $migration->getAuthor()],
+                ['Status' => $migration->getStatus()],
+                ['Created At' => $migration->getCreatedAt()->format('Y-m-d H:i:s')],
+                ['Source Hash' => substr($migration->getSourceHash(), 0, 16) . '...']
+            );
+
+            $io->section('Files Created');
+            $io->table(
+                ['Type', 'Path', 'Size'],
+                [
+                    ['Data Export', $result['files']['export_file'], $this->formatFileSize($result['files']['export_file'])],
+                    ['Metadata', $result['files']['metadata_file'], $this->formatFileSize($result['files']['metadata_file'])],
+                ]
+            );
+
+            if (!empty($result['snapshots'])) {
+                $io->section('Snapshots Created');
+                $rows = [];
+                foreach ($result['snapshots'] as $snapshot) {
+                    $rows[] = [
+                        $snapshot->getTableName(),
+                        $snapshot->getIdentifier(),
+                        substr($snapshot->getHash(), 0, 12) . '...',
+                        $snapshot->getCreatedAt()->format('Y-m-d H:i:s'),
+                    ];
+                }
+                $io->table(['Table', 'Identifier', 'Hash', 'Created At'], $rows);
             }
 
-            // TODO: Implement migration generation in Phase 2
-            $io->warning('Migration generation is not yet implemented.');
-            $io->note('This feature will be available in Phase 2 of the implementation.');
-            $io->note('Planned features:');
-            $io->listing([
-                'Generate Doctrine migration files',
-                'Export changed records to T3D format',
-                'Create migration metadata',
-                'Store migration in configured path',
-            ]);
+            $io->note('Migration is ready to be applied on target systems using \'t3hauler:apply ' . $migration->getMigrationId() . '\'');
 
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
             $io->error('Error creating migration: ' . $e->getMessage());
+            if ($output->isVerbose()) {
+                $io->text('<error>' . $e->getTraceAsString() . '</error>');
+            }
             return Command::FAILURE;
         }
     }
@@ -110,6 +162,10 @@ class CreateMigrationCommand extends Command
             $rows[] = ['Changed', count($summary['changed_tables']), implode(', ', $summary['changed_tables'])];
         }
 
+        if (!empty($summary['unchanged_tables'])) {
+            $rows[] = ['Unchanged', count($summary['unchanged_tables']), implode(', ', $summary['unchanged_tables'])];
+        }
+
         if (!empty($summary['no_baseline_tables'])) {
             $rows[] = ['No Baseline', count($summary['no_baseline_tables']), implode(', ', $summary['no_baseline_tables'])];
         }
@@ -117,5 +173,21 @@ class CreateMigrationCommand extends Command
         if (!empty($rows)) {
             $io->table(['Status', 'Count', 'Tables'], $rows);
         }
+    }
+
+    private function formatFileSize(string $filePath): string
+    {
+        if (!file_exists($filePath)) {
+            return 'N/A';
+        }
+
+        $size = filesize($filePath);
+        $units = ['B', 'KB', 'MB', 'GB'];
+
+        for ($i = 0; $size >= 1024 && $i < count($units) - 1; $i++) {
+            $size /= 1024;
+        }
+
+        return round($size, 2) . ' ' . $units[$i];
     }
 }

@@ -15,7 +15,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 /**
  * Command to show pending changes since last snapshot
  */
-#[AsCommand(name: 't3hauler:diff')]
+#[AsCommand(
+    name: 't3hauler:diff',
+    description: 'Show pending changes since last snapshot',
+    aliases: ['haul:diff'])]
 class DiffCommand extends Command
 {
     public function __construct(
