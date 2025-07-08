@@ -32,6 +32,7 @@ CREATE TABLE tx_t3hauler_migrations (
 		target_hash varchar(64) DEFAULT NULL,
 		status enum('pending','applied','failed','rolled_back') DEFAULT 'pending',
 		data_file varchar(255) NOT NULL DEFAULT '',
+		metadata text,
 
 		PRIMARY KEY (uid),
 		UNIQUE KEY migration_id (migration_id),

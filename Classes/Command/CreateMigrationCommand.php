@@ -96,7 +96,6 @@ class CreateMigrationCommand extends Command
                     ['Site' => $migration['site'] ?? 'N/A'],
                     ['Export File' => $migration['export_file']],
                     ['Format' => $migration['format']],
-                    ['Metadata File' => $migration['metadata_file']]
                 );
 
                 $this->showChangesSummary($io, $migration['changes']);
@@ -123,7 +122,6 @@ class CreateMigrationCommand extends Command
                 ['Type', 'Path', 'Size'],
                 [
                     ['Data Export', $result['files']['export_file'], $this->formatFileSize($result['files']['export_file'])],
-                    ['Metadata', $result['files']['metadata_file'], $this->formatFileSize($result['files']['metadata_file'])],
                 ]
             );
 

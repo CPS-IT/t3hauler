@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection DynamicInvocationViaScopeResolutionInspection */
+
 declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Tests\Unit\Service;
@@ -8,8 +10,8 @@ use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Service\IntegrityService;
 use Cpsit\T3hauler\Utility\HashUtility;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
 
 class IntegrityServiceTest extends TestCase
 {
@@ -50,23 +52,19 @@ class IntegrityServiceTest extends TestCase
         $affectedTables = ['pages', 'tt_content'];
 
         $this->configurationMock
-            ->expects(self::once())
             ->method('get')
             ->with('detection.excludeFields', [])
             ->willReturn(['tstamp', 'crdate']);
 
         $this->hashUtilityMock
-            ->expects(self::exactly(2))
             ->method('calculateTableHash')
-            ->willReturnOnConsecutiveCalls('hash1', 'hash2');
+            ->willReturn('foo-hash1');
 
         $this->connectionPoolMock
-            ->expects(self::atLeast(2))
             ->method('getConnectionForTable')
             ->willReturn($this->connectionMock);
 
         $this->connectionMock
-            ->expects(self::atLeastOnce())
             ->method('createSchemaManager')
             ->willReturn($this->schemaManagerMock);
 

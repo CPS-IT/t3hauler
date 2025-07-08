@@ -59,25 +59,28 @@ class Export
     /**
      * Add a record to the export
      */
-    public function export_addRecord(string $tableName, int $uid): void
+    public function addSingleRecord(string $tableName, string $identifier, array $record): void
     {
         if (!isset($this->records[$tableName])) {
             $this->records[$tableName] = [];
             $this->exportedTables[] = $tableName;
         }
 
-        if (!in_array($uid, $this->records[$tableName], true)) {
-            $this->records[$tableName][] = $uid;
+        if (!in_array($identifier, $this->records[$tableName], true)) {
+            $this->records[$tableName][$identifier] = $record;
         }
     }
 
     /**
      * Add multiple records from a table
      */
-    public function addTableRecords(string $tableName, array $uids): void
+    public function addTableRecords(string $tableName, array $records): void
     {
-        foreach ($uids as $uid) {
-            $this->export_addRecord($tableName, (int)$uid);
+        foreach ($records as $record) {
+            if (empty($record['uid'])) {
+                continue;
+            }
+            $this->addSingleRecord($tableName, (string)$record['uid'], $record);
         }
     }
 
@@ -87,7 +90,7 @@ class Export
     public function addRelation(string $fromTable, int $fromUid, string $field, string $toTable, int $toUid): void
     {
         $relationKey = $fromTable . ':' . $fromUid;
-        
+
         if (!isset($this->relations[$relationKey])) {
             $this->relations[$relationKey] = [];
         }
@@ -102,19 +105,20 @@ class Export
     /**
      * Process the export (resolve dependencies, order records)
      */
-    public function process(): void
+    public function process(): string
     {
         // Resolve dependencies and order tables/records appropriately
         $this->resolveDependencies();
         $this->metadata['processed_at'] = time();
         $this->metadata['total_records'] = $this->getTotalRecordCount();
         $this->metadata['exported_tables'] = $this->exportedTables;
+        return $this->compileMemoryToFileContent();
     }
 
     /**
-     * Compile export to file content
+     * Compile export to JSON file content
      */
-    public function compileMemoryToFileContent(string $format = 'json'): string
+    public function compileMemoryToFileContent(): string
     {
         $exportData = [
             'metadata' => $this->metadata,
@@ -122,12 +126,7 @@ class Export
             'relations' => $this->relations,
         ];
 
-        return match (strtolower($format)) {
-            'json' => $this->compileToJson($exportData),
-            'xml' => $this->compileToXml($exportData),
-            'yaml' => $this->compileToYaml($exportData),
-            default => throw new \InvalidArgumentException('Unsupported export format: ' . $format, 1909234567),
-        };
+        return $this->compileToJson($exportData);
     }
 
     /**
@@ -183,109 +182,6 @@ class Export
     }
 
     /**
-     * Compile export data to XML format
-     */
-    private function compileToXml(array $exportData): string
-    {
-        $xml = new \DOMDocument('1.0', $this->charset);
-        $xml->formatOutput = true;
-
-        $root = $xml->createElement('t3hauler_export');
-        $xml->appendChild($root);
-
-        // Add metadata
-        $metadataNode = $xml->createElement('metadata');
-        $root->appendChild($metadataNode);
-        foreach ($exportData['metadata'] as $key => $value) {
-            $node = $xml->createElement($key, htmlspecialchars((string)$value));
-            $metadataNode->appendChild($node);
-        }
-
-        // Add records
-        $recordsNode = $xml->createElement('records');
-        $root->appendChild($recordsNode);
-        foreach ($exportData['records'] as $tableName => $uids) {
-            $tableNode = $xml->createElement('table');
-            $tableNode->setAttribute('name', $tableName);
-            $recordsNode->appendChild($tableNode);
-            
-            foreach ($uids as $uid) {
-                $recordNode = $xml->createElement('record');
-                $recordNode->setAttribute('uid', (string)$uid);
-                $tableNode->appendChild($recordNode);
-            }
-        }
-
-        // Add relations
-        $relationsNode = $xml->createElement('relations');
-        $root->appendChild($relationsNode);
-        foreach ($exportData['relations'] as $fromKey => $relations) {
-            foreach ($relations as $relation) {
-                $relationNode = $xml->createElement('relation');
-                $relationNode->setAttribute('from', $fromKey);
-                $relationNode->setAttribute('field', $relation['field']);
-                $relationNode->setAttribute('to_table', $relation['to_table']);
-                $relationNode->setAttribute('to_uid', (string)$relation['to_uid']);
-                $relationsNode->appendChild($relationNode);
-            }
-        }
-
-        return $xml->saveXML() ?: '';
-    }
-
-    /**
-     * Compile export data to YAML format
-     */
-    private function compileToYaml(array $exportData): string
-    {
-        // Simple YAML serialization - for complex cases, use symfony/yaml
-        $yaml = "# T3Hauler Export File\n";
-        $yaml .= "# Generated: " . date('Y-m-d H:i:s') . "\n\n";
-        
-        $yaml .= "metadata:\n";
-        foreach ($exportData['metadata'] as $key => $value) {
-            $yaml .= "  {$key}: " . $this->yamlValue($value) . "\n";
-        }
-        
-        $yaml .= "\nrecords:\n";
-        foreach ($exportData['records'] as $tableName => $uids) {
-            $yaml .= "  {$tableName}:\n";
-            foreach ($uids as $uid) {
-                $yaml .= "    - {$uid}\n";
-            }
-        }
-        
-        $yaml .= "\nrelations:\n";
-        foreach ($exportData['relations'] as $fromKey => $relations) {
-            $yaml .= "  \"{$fromKey}\":\n";
-            foreach ($relations as $relation) {
-                $yaml .= "    - field: \"{$relation['field']}\"\n";
-                $yaml .= "      to_table: \"{$relation['to_table']}\"\n";
-                $yaml .= "      to_uid: {$relation['to_uid']}\n";
-            }
-        }
-        
-        return $yaml;
-    }
-
-    /**
-     * Format value for YAML output
-     */
-    private function yamlValue(mixed $value): string
-    {
-        if (is_string($value)) {
-            return "\"{$value}\"";
-        }
-        if (is_bool($value)) {
-            return $value ? 'true' : 'false';
-        }
-        if (is_array($value)) {
-            return '[' . implode(', ', array_map([$this, 'yamlValue'], $value)) . ']';
-        }
-        return (string)$value;
-    }
-
-    /**
      * Resolve dependencies between records
      */
     private function resolveDependencies(): void
@@ -296,7 +192,7 @@ class Export
 
         // Define typical TYPO3 table dependency order
         $dependencyOrder = [
-            'be_groups', 'be_users', 'pages', 'sys_template', 'sys_domain',
+            'be_groups', 'be_users', 'pages',
             'tt_content', 'sys_file_storage', 'sys_file', 'sys_file_reference',
             // Add other tables as needed
         ];

@@ -75,9 +75,7 @@ Classes/
 ### Custom Export Format
 
 #### Supported Formats
-- **JSON** (default): Human-readable, widely supported
-- **XML**: Structured, compatible with legacy systems
-- **YAML**: Configuration-friendly, human-readable
+- **JSON**: Human-readable, widely supported (only supported format)
 
 #### Export Structure
 ```json
@@ -105,7 +103,7 @@ Classes/
 
 The export system automatically:
 1. **Orders tables** by common TYPO3 dependency patterns
-2. **Identifies relations** through field analysis  
+2. **Identifies relations** through field analysis
 3. **Resolves dependencies** to prevent import conflicts
 4. **Maintains consistency** across multi-table exports
 
@@ -122,7 +120,7 @@ The export system automatically:
 ### ✅ Phase 2: Migration Generation (Completed)
 - **Migration Model**: Full lifecycle management (pending → applied → failed → rolled_back)
 - **Custom Export System**: Replaces TYPO3 internal classes
-- **Export Formats**: JSON, XML, YAML with relation handling
+- **Export Format**: JSON with relation handling
 - **Migration Service**: Complete orchestration workflow
 - **Enhanced CLI**: Fully functional create command with rich output
 - **Comprehensive Testing**: 54 tests with 196 assertions covering all components
@@ -138,7 +136,7 @@ The export system automatically:
 
 ### Custom Export Advantages
 1. **No Internal Dependencies**: Avoids `@internal` TYPO3 classes
-2. **Format Flexibility**: Multiple output formats (JSON/XML/YAML)
+2. **Format Standardization**: Consistent JSON format
 3. **Relation Handling**: Built-in dependency resolution
 4. **Better Performance**: Optimized for T3Hauler use cases
 5. **Enhanced Metadata**: Rich migration context information
@@ -287,7 +285,7 @@ class MigrationServiceTest extends TestCase
 1. **Developer makes changes** to content/configuration
 2. **`t3hauler:diff`** shows detected changes since last snapshot
 3. **`t3hauler:create`** generates migration with structured export
-4. **Migration package** contains JSON/XML/YAML export + metadata
+4. **Migration package** contains JSON export + metadata
 
 ### Transfer Phase
 - Migration files are versioned and transferred
@@ -304,7 +302,7 @@ class MigrationServiceTest extends TestCase
 
 ### Phase 1 & 2 (Completed) ✅
 - ✅ Detect changes in configurable tables automatically
-- ✅ Generate migrations with structured exports (JSON/XML/YAML)
+- ✅ Generate migrations with structured JSON exports
 - ✅ Hash-based integrity validation system
 - ✅ Configurable for zug-sitepackage project structure
 - ✅ Comprehensive unit test coverage (54 tests)
@@ -350,7 +348,7 @@ class MigrationServiceTest extends TestCase
 
 T3Hauler Phase 1 & 2 provide a solid foundation with:
 - **Custom export system** avoiding TYPO3 internal classes
-- **Multiple format support** (JSON, XML, YAML)
+- **JSON format support**
 - **Robust change detection** with hash-based validation
 - **Comprehensive testing** ensuring reliability
 - **Modern architecture** following TYPO3 v13 best practices

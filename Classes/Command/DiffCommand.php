@@ -18,7 +18,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 't3hauler:diff',
     description: 'Show pending changes since last snapshot',
-    aliases: ['haul:diff'])]
+    aliases: ['haul:diff']
+)]
 class DiffCommand extends Command
 {
     public function __construct(

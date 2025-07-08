@@ -7,8 +7,8 @@ namespace Cpsit\T3hauler\Service;
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Domain\Model\Migration;
 use Cpsit\T3hauler\Domain\Repository\MigrationRepository;
-use Cpsit\T3hauler\Service\ExportService;
 use Cpsit\T3hauler\Utility\HashUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Service for creating and managing T3Hauler migrations
@@ -53,19 +53,20 @@ class MigrationService
         }
 
         $migrationPath = $migrationPaths[0];
+        $migrationPath = GeneralUtility::getFileAbsFileName($migrationPath);
 
-        if (!is_dir($migrationPath)) {
-            if (!$dryRun && !mkdir($migrationPath, 0755, true)) {
+        //@todo Check and create path with TYPO3 core utilities
+        if (!$dryRun && !is_dir($migrationPath)) {
+            /** @noinspection MkdirRaceConditionInspection */
+            /** @noinspection NestedPositiveIfStatementsInspection */
+            if (!mkdir($migrationPath, 0755, true)) {
                 throw new \RuntimeException('Failed to create migration directory: ' . $migrationPath, 1909123458);
             }
         }
 
         // Generate migration file paths
-        $exportFormat = 'json'; // Default to JSON format
-        $exportFileName = $migrationId . '.' . $exportFormat;
+        $exportFileName = $migrationId . '.json';
         $exportFilePath = $migrationPath . '/' . $exportFileName;
-        $metadataFileName = $migrationId . '_metadata.json';
-        $metadataFilePath = $migrationPath . '/' . $metadataFileName;
 
         if ($dryRun) {
             return [
@@ -78,8 +79,7 @@ class MigrationService
                     'site' => $site,
                     'changes' => $changesSummary,
                     'export_file' => $exportFilePath,
-                    'metadata_file' => $metadataFilePath,
-                    'format' => $exportFormat,
+                    'format' => 'json',
                 ],
             ];
         }
@@ -88,35 +88,14 @@ class MigrationService
             // Calculate source hash from current state
             $sourceHash = $this->calculateCurrentStateHash();
 
-            // Export changed data to structured format
+            // Export changed data to JSON format
             $exportResult = $this->exportService->exportChangedData(
                 $changesSummary['changed_tables'],
-                $exportFilePath,
-                $exportFormat
+                $exportFilePath
             );
 
             if (!$exportResult['success']) {
                 throw new \RuntimeException('Failed to export data: ' . $exportResult['message'], 1909123459);
-            }
-
-            // Create migration metadata
-            $metadata = [
-                'changes_summary' => $changesSummary,
-                'export_result' => $exportResult,
-                'site' => $site,
-                'configuration' => [
-                    'enabled_tables' => $this->configuration->getEnabledTables(),
-                    'excluded_fields' => $this->configuration->getExcludedFields(),
-                    'hash_algorithm' => $this->configuration->getHashAlgorithm(),
-                ],
-                'created_by' => 't3hauler',
-                'version' => '1.0.0',
-            ];
-
-            // Save metadata file
-            $metadataJson = json_encode($metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-            if (file_put_contents($metadataFilePath, $metadataJson) === false) {
-                throw new \RuntimeException('Failed to write metadata file: ' . $metadataFilePath, 1909123460);
             }
 
             // Create migration record
@@ -131,8 +110,7 @@ class MigrationService
 
             $migration->addMetadata('site', $site);
             $migration->addMetadata('export_file', $exportFileName);
-            $migration->addMetadata('metadata_file', $metadataFileName);
-            $migration->addMetadata('export_format', $exportFormat);
+            $migration->addMetadata('export_format', 'json');
             $migration->addMetadata('changed_tables', $changesSummary['changed_tables']);
             $migration->addMetadata('export_records', $exportResult['record_count'] ?? 0);
             $migration->addMetadata('file_size', $exportResult['file_size'] ?? 0);
@@ -150,14 +128,13 @@ class MigrationService
                 'migration' => $savedMigration,
                 'files' => [
                     'export_file' => $exportFilePath,
-                    'metadata_file' => $metadataFilePath,
                 ],
                 'snapshots' => $snapshots,
             ];
 
         } catch (\Exception $e) {
             // Cleanup on failure
-            $this->cleanupFailedMigration($exportFilePath, $metadataFilePath);
+            $this->cleanupFailedMigration($exportFilePath);
 
             throw new \RuntimeException(
                 'Failed to create migration: ' . $e->getMessage(),
@@ -243,7 +220,6 @@ class MigrationService
             'migration' => $migration,
             'files' => [
                 'export_file' => $exportFile,
-                'metadata_file' => $metadataFile,
             ],
             'issues' => $issues,
         ];
@@ -283,14 +259,10 @@ class MigrationService
     /**
      * Clean up files from failed migration creation
      */
-    private function cleanupFailedMigration(string $exportFilePath, string $metadataFilePath): void
+    private function cleanupFailedMigration(string $exportFilePath): void
     {
         if (file_exists($exportFilePath)) {
             @unlink($exportFilePath);
-        }
-
-        if (file_exists($metadataFilePath)) {
-            @unlink($metadataFilePath);
         }
     }
 }

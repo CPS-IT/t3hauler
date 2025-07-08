@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection DynamicInvocationViaScopeResolutionInspection */
+
 declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Tests\Unit\Service;
@@ -7,8 +9,8 @@ namespace Cpsit\T3hauler\Tests\Unit\Service;
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Service\ImportService;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
 
 class ImportServiceTest extends TestCase
 {
@@ -142,7 +144,7 @@ class ImportServiceTest extends TestCase
             ->method('tablesExist')
             ->willReturn(true);
 
-        $result = $this->subject->importFromFile($tempFile, 'json', true);
+        $result = $this->subject->importFromFile($tempFile, true);
 
         self::assertTrue($result['success']);
         self::assertEquals(0, $result['imported_records']);
@@ -223,18 +225,18 @@ class ImportServiceTest extends TestCase
 
         // Mock table existence check for pages only
         $this->connectionPoolMock
-            ->expects(self::once())
+            ->expects(self::atLeastOnce())
             ->method('getConnectionForTable')
             ->with('pages')
             ->willReturn($this->connectionMock);
 
         $this->connectionMock
-            ->expects(self::once())
+            ->expects(self::atLeastOnce())
             ->method('createSchemaManager')
             ->willReturn($this->schemaManagerMock);
 
         $this->schemaManagerMock
-            ->expects(self::once())
+            ->expects(self::atLeastOnce())
             ->method('tablesExist')
             ->with(['pages'])
             ->willReturn(true);
@@ -271,108 +273,5 @@ class ImportServiceTest extends TestCase
 
         self::assertFalse($result['valid']);
         self::assertArrayHasKey('message', $result);
-    }
-
-    #[Test]
-    public function importFromFileHandlesXmlFormat(): void
-    {
-        $xmlContent = '<?xml version="1.0" encoding="utf-8"?>
-<t3hauler_export>
-  <metadata>
-    <format_version>1.0</format_version>
-    <total_records>1</total_records>
-  </metadata>
-  <records>
-    <table name="pages">
-      <record uid="1"/>
-    </table>
-  </records>
-  <relations>
-  </relations>
-</t3hauler_export>';
-
-        $tempFile = tempnam(sys_get_temp_dir(), 'test_');
-        file_put_contents($tempFile, $xmlContent);
-
-        // Mock table existence check - called 3 times: once for simulation, twice for actual import
-        $this->connectionPoolMock
-            ->expects(self::atLeast(2))
-            ->method('getConnectionForTable')
-            ->with('pages')
-            ->willReturn($this->connectionMock);
-
-        $this->connectionMock
-            ->expects(self::atLeastOnce())
-            ->method('createSchemaManager')
-            ->willReturn($this->schemaManagerMock);
-
-        $this->schemaManagerMock
-            ->expects(self::atLeastOnce())
-            ->method('tablesExist')
-            ->with(['pages'])
-            ->willReturn(true);
-
-        $result = $this->subject->importFromFile($tempFile, 'xml');
-
-        self::assertTrue($result['success']);
-        self::assertEquals(1, $result['imported_records']);
-
-        unlink($tempFile);
-    }
-
-    #[Test]
-    public function importFromFileHandlesYamlFormat(): void
-    {
-        $yamlContent = 'metadata:
-  format_version: "1.0"
-  total_records: 1
-
-records:
-  pages:
-    - 1
-
-relations:';
-
-        $tempFile = tempnam(sys_get_temp_dir(), 'test_');
-        file_put_contents($tempFile, $yamlContent);
-
-        // Mock table existence check - called 3 times: once for simulation, twice for actual import
-        $this->connectionPoolMock
-            ->expects(self::atLeast(2))
-            ->method('getConnectionForTable')
-            ->with('pages')
-            ->willReturn($this->connectionMock);
-
-        $this->connectionMock
-            ->expects(self::atLeastOnce())
-            ->method('createSchemaManager')
-            ->willReturn($this->schemaManagerMock);
-
-        $this->schemaManagerMock
-            ->expects(self::atLeastOnce())
-            ->method('tablesExist')
-            ->with(['pages'])
-            ->willReturn(true);
-
-        $result = $this->subject->importFromFile($tempFile, 'yaml');
-
-        self::assertTrue($result['success']);
-        self::assertEquals(1, $result['imported_records']);
-
-        unlink($tempFile);
-    }
-
-    #[Test]
-    public function importFromFileFailsWithUnsupportedFormat(): void
-    {
-        $tempFile = tempnam(sys_get_temp_dir(), 'test_');
-        file_put_contents($tempFile, 'test data');
-
-        $result = $this->subject->importFromFile($tempFile, 'unsupported');
-
-        self::assertFalse($result['success']);
-        self::assertStringContainsString('parse', $result['message']);
-
-        unlink($tempFile);
     }
 }

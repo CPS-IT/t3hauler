@@ -21,6 +21,9 @@ class IntegrityService
 
     /**
      * Validate migration integrity against current database state
+     * @param string $migrationHash
+     * @param array $affectedTables
+     * @return array
      */
     public function validateMigrationIntegrity(string $migrationHash, array $affectedTables): array
     {
@@ -30,7 +33,7 @@ class IntegrityService
 
             if ($currentHash !== $migrationHash) {
                 $conflicts = $this->detectConflicts($affectedTables, $migrationHash);
-                
+
                 return [
                     'valid' => false,
                     'message' => 'Database has been modified since migration creation',
@@ -181,7 +184,7 @@ class IntegrityService
                 if ($this->tableExists($tableName)) {
                     $hash = $this->hashUtility->calculateTableHash($tableName, $excludeFields);
                     $recordCount = $this->getTableRecordCount($tableName);
-                    
+
                     $checkpoint['tables'][$tableName] = [
                         'hash' => $hash,
                         'record_count' => $recordCount,
@@ -215,13 +218,13 @@ class IntegrityService
     private function calculateCurrentTableHash(array $tables, array $excludeFields): string
     {
         $tableHashes = [];
-        
+
         foreach ($tables as $tableName) {
             if ($this->tableExists($tableName)) {
                 $tableHashes[$tableName] = $this->hashUtility->calculateTableHash($tableName, $excludeFields);
             }
         }
-        
+
         return hash('sha256', serialize($tableHashes));
     }
 
@@ -377,7 +380,7 @@ class IntegrityService
         try {
             $connection = $this->connectionPool->getConnectionForTable($tableName);
             $queryBuilder = $connection->createQueryBuilder();
-            
+
             return (int)$queryBuilder
                 ->count('*')
                 ->from($tableName)
@@ -400,8 +403,8 @@ class IntegrityService
 
             return [
                 'sufficient' => $freeBytes > $requiredBytes,
-                'message' => $freeBytes > $requiredBytes 
-                    ? 'Sufficient disk space available' 
+                'message' => $freeBytes > $requiredBytes
+                    ? 'Sufficient disk space available'
                     : 'Low disk space - less than 100MB available',
                 'free_space' => $freeBytes,
                 'required_space' => $requiredBytes,

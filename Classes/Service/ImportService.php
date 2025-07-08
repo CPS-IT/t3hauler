@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace Cpsit\T3hauler\Service;
 
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
+use Doctrine\DBAL\Exception;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Connection;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Service for importing T3Hauler export files
  *
- * Handles structured import from JSON, XML, or YAML format with relation dependency resolution
+ * Handles structured import from JSON format with relation dependency resolution
  */
 class ImportService
 {
@@ -25,7 +24,7 @@ class ImportService
     /**
      * Import data from export file
      */
-    public function importFromFile(string $filePath, string $format = 'json', bool $dryRun = false): array
+    public function importFromFile(string $filePath, bool $dryRun = false): array
     {
         try {
             if (!file_exists($filePath)) {
@@ -45,8 +44,8 @@ class ImportService
                 ];
             }
 
-            // Parse export data
-            $exportData = $this->parseExportData($content, $format);
+            // Parse JSON export data
+            $exportData = $this->parseExportData($content);
             if (!$exportData) {
                 return [
                     'success' => false,
@@ -128,7 +127,7 @@ class ImportService
         try {
             // Check if target database has been modified since baseline
             $currentHash = $this->calculateCurrentHash($exportData['records']);
-            
+
             if ($currentHash !== $baselineHash) {
                 return [
                     'valid' => false,
@@ -155,16 +154,11 @@ class ImportService
     }
 
     /**
-     * Parse export data based on format
+     * Parse JSON export data
      */
-    private function parseExportData(string $content, string $format): ?array
+    private function parseExportData(string $content): ?array
     {
-        return match (strtolower($format)) {
-            'json' => json_decode($content, true),
-            'xml' => $this->parseXmlExport($content),
-            'yaml' => $this->parseYamlExport($content),
-            default => null,
-        };
+        return json_decode($content, true);
     }
 
     /**
@@ -251,7 +245,7 @@ class ImportService
 
             $uids = $exportData['records'][$tableName];
             $result = $this->importTableRecords($tableName, $uids, $exportData['relations'] ?? []);
-            
+
             if ($result['success']) {
                 $importedRecords += $result['imported_count'];
                 $importedTables[$tableName] = $result['imported_count'];
@@ -262,8 +256,8 @@ class ImportService
 
         return [
             'success' => empty($errors),
-            'message' => empty($errors) 
-                ? "Successfully imported {$importedRecords} records" 
+            'message' => empty($errors)
+                ? "Successfully imported {$importedRecords} records"
                 : 'Import completed with errors',
             'imported_records' => $importedRecords,
             'imported_tables' => $importedTables,
@@ -315,9 +309,10 @@ class ImportService
      */
     private function orderTablesByDependency(array $tables): array
     {
-        // Use same dependency order as Export model
+        //@todo resolve dependencies by TCA
+        // Use the same dependency order as the Export model
         $dependencyOrder = [
-            'be_groups', 'be_users', 'pages', 'sys_template', 'sys_domain',
+            'be_groups', 'be_users', 'pages',
             'tt_content', 'sys_file_storage', 'sys_file', 'sys_file_reference',
         ];
 
@@ -337,15 +332,14 @@ class ImportService
     }
 
     /**
-     * Check if table exists in database
+     * Check if a table exists in the database
      */
     private function tableExists(string $tableName): bool
     {
         try {
             $connection = $this->connectionPool->getConnectionForTable($tableName);
-            $schemaManager = $connection->createSchemaManager();
-            return $schemaManager->tablesExist([$tableName]);
-        } catch (\Exception $e) {
+            return $connection->createSchemaManager()->tablesExist([$tableName]);
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -357,7 +351,7 @@ class ImportService
     {
         $filtered = $exportData;
         $filtered['records'] = array_intersect_key(
-            $exportData['records'], 
+            $exportData['records'],
             array_flip($tableFilter)
         );
 
@@ -399,107 +393,4 @@ class ImportService
         ];
     }
 
-    /**
-     * Parse XML export content
-     */
-    private function parseXmlExport(string $content): ?array
-    {
-        $previousErrors = libxml_use_internal_errors(true);
-        $xml = simplexml_load_string($content);
-        $xmlErrors = libxml_get_errors();
-        libxml_use_internal_errors($previousErrors);
-
-        if ($xml === false || !empty($xmlErrors)) {
-            return null;
-        }
-
-        if (!isset($xml->metadata, $xml->records)) {
-            return null;
-        }
-
-        $data = [
-            'metadata' => [],
-            'records' => [],
-            'relations' => [],
-        ];
-
-        // Parse metadata
-        foreach ($xml->metadata->children() as $key => $value) {
-            $data['metadata'][$key] = (string)$value;
-        }
-
-        // Parse records
-        foreach ($xml->records->table as $table) {
-            $tableName = (string)$table['name'];
-            $data['records'][$tableName] = [];
-            
-            foreach ($table->record as $record) {
-                $data['records'][$tableName][] = (int)$record['uid'];
-            }
-        }
-
-        // Parse relations
-        if (isset($xml->relations)) {
-            foreach ($xml->relations->relation as $relation) {
-                $from = (string)$relation['from'];
-                if (!isset($data['relations'][$from])) {
-                    $data['relations'][$from] = [];
-                }
-                
-                $data['relations'][$from][] = [
-                    'field' => (string)$relation['field'],
-                    'to_table' => (string)$relation['to_table'],
-                    'to_uid' => (int)$relation['to_uid'],
-                ];
-            }
-        }
-
-        return $data;
-    }
-
-    /**
-     * Parse YAML export content (basic implementation)
-     */
-    private function parseYamlExport(string $content): array
-    {
-        // Basic YAML parsing - for production use symfony/yaml
-        $lines = explode("\n", $content);
-        $data = ['metadata' => [], 'records' => [], 'relations' => []];
-        $currentSection = null;
-        $currentTable = null;
-        
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line) || str_starts_with($line, '#')) {
-                continue;
-            }
-            
-            if (str_ends_with($line, ':') && !str_contains($line, ' ')) {
-                $currentSection = rtrim($line, ':');
-                $currentTable = null;
-                continue;
-            }
-            
-            // Handle metadata section
-            if ($currentSection === 'metadata' && str_starts_with($line, '  ') && str_contains($line, ':')) {
-                $parts = explode(':', $line, 2);
-                $key = trim($parts[0]);
-                $value = trim($parts[1], ' "\'');
-                $data['metadata'][$key] = $value;
-                continue;
-            }
-            
-            if ($currentSection === 'records' && str_starts_with($line, '  ') && str_ends_with($line, ':')) {
-                $currentTable = trim(rtrim($line, ':'));
-                $data['records'][$currentTable] = [];
-                continue;
-            }
-            
-            if ($currentSection === 'records' && $currentTable && str_starts_with($line, '    - ')) {
-                $data['records'][$currentTable][] = (int)trim(substr($line, 6));
-            }
-        }
-        
-        return $data;
-    }
 }

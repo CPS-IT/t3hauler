@@ -146,12 +146,13 @@ class T3HaulerConfiguration
      */
     private function loadConfigurationFromPath(string $configPath): void
     {
-        if (!is_dir($configPath)) {
+        $path = GeneralUtility::getFileAbsFileName($configPath);
+        if (!GeneralUtility::isAllowedAbsPath($path)) {
             return;
         }
 
         // Load main settings.yaml
-        $settingsFile = rtrim($configPath, '/') . '/settings.yaml';
+        $settingsFile = rtrim($path, '/') . '/settings.yaml';
         if (file_exists($settingsFile)) {
             $settings = Yaml::parseFile($settingsFile);
             if (is_array($settings)) {
@@ -160,7 +161,7 @@ class T3HaulerConfiguration
         }
 
         // Load site-specific configurations
-        $sitesDir = rtrim($configPath, '/') . '/Sites/';
+        $sitesDir = rtrim($path, '/') . '/Sites/';
         if (is_dir($sitesDir)) {
             $siteFiles = GeneralUtility::getFilesInDir($sitesDir, 'yaml');
             foreach ($siteFiles as $siteFile) {

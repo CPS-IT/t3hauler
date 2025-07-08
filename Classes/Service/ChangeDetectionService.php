@@ -107,7 +107,8 @@ class ChangeDetectionService
         $snapshotSet = new DataSnapshot(
             $identifier,
             DataSnapshotRepository::TABLE_NAME,
-            $setHash);
+            $setHash
+        );
         $this->snapshotRepository->save($snapshotSet);
         return $snapshots;
     }

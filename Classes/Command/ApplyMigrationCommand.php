@@ -6,9 +6,9 @@ namespace Cpsit\T3hauler\Command;
 
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Domain\Repository\MigrationRepository;
-use Cpsit\T3hauler\Service\ImportService;
-use Cpsit\T3hauler\Service\ChangeDetectionService;
 use Cpsit\T3hauler\Exception\MigrationNotFoundException;
+use Cpsit\T3hauler\Service\ChangeDetectionService;
+use Cpsit\T3hauler\Service\ImportService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -20,7 +20,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 /**
  * Command to apply migration with validation
  */
-#[AsCommand(name: 't3hauler:apply')]
+#[AsCommand(
+    name: 't3hauler:migration:apply',
+    description: 'Apply migration with validation',
+    aliases: ['haul:apply'],
+    help: 'This command applies a migration to the target environment with integrity validation.'
+)]
 class ApplyMigrationCommand extends Command
 {
     public function __construct(
@@ -83,13 +88,13 @@ class ApplyMigrationCommand extends Command
             // Load migration
             $migration = $this->migrationRepository->findByMigrationId($migrationId);
             if (!$migration) {
-                throw new MigrationNotFoundException("Migration '{$migrationId}' not found");
+                throw new MigrationNotFoundException("Migration '{$migrationId}' not found", 8178776127);
             }
 
             $io->section("Migration: {$migration->getName()}");
             $io->text("Description: {$migration->getDescription()}");
             $io->text("Author: {$migration->getAuthor()}");
-            $io->text("Created: " . $migration->getCreatedAt()->format('Y-m-d H:i:s'));
+            $io->text('Created: ' . $migration->getCreatedAt()->format('Y-m-d H:i:s'));
             $io->text("Status: {$migration->getStatus()}");
 
             if ($migration->getStatus() === 'applied') {
@@ -127,7 +132,7 @@ class ApplyMigrationCommand extends Command
             // Integrity validation
             if ($validate && !$force) {
                 $io->section('Integrity Validation');
-                
+
                 $validation = $this->importService->validateTargetIntegrity(
                     ['records' => []], // This would be loaded from file
                     $migration->getSourceHash()
@@ -161,7 +166,7 @@ class ApplyMigrationCommand extends Command
             if ($dryRun) {
                 $io->success('Migration preview completed');
                 $io->text("Would import {$result['would_import']} records");
-                
+
                 if (isset($result['tables_summary'])) {
                     $tableRows = [];
                     foreach ($result['tables_summary'] as $tableName => $summary) {
@@ -179,7 +184,7 @@ class ApplyMigrationCommand extends Command
             } else {
                 $io->success('Migration applied successfully');
                 $io->text("Imported {$result['imported_records']} records");
-                
+
                 if (isset($result['imported_tables'])) {
                     $tableRows = [];
                     foreach ($result['imported_tables'] as $tableName => $count) {
@@ -226,14 +231,14 @@ class ApplyMigrationCommand extends Command
     {
         try {
             $enabledTables = $this->configuration->get('detection.enabledTables', []);
-            
+
             if (empty($enabledTables)) {
                 $io->note('No tables configured for snapshot creation');
                 return;
             }
 
             $io->text('Creating post-migration snapshot...');
-            
+
             $snapshotData = $this->changeDetectionService->createSnapshot(
                 'post_migration_' . $migration->getMigrationId(),
                 $enabledTables

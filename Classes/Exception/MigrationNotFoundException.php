@@ -7,6 +7,4 @@ namespace Cpsit\T3hauler\Exception;
 /**
  * Exception thrown when a migration cannot be found
  */
-class MigrationNotFoundException extends \Exception
-{
-}
+class MigrationNotFoundException extends \Exception {}

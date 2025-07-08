@@ -9,14 +9,6 @@ services:
     resource: '../Classes/*'
     exclude: '../Classes/Domain/Model/*'
 
-  # Commands with proper DI
-  Cpsit\T3hauler\Command\ApplyMigrationCommand:
-    tags:
-      - name: 'console.command'
-        command: 't3hauler:apply'
-        description: 'Apply migration with validation'
-        schedulable: false
-
   # Core services
   Cpsit\T3hauler\Service\ChangeDetectionService:
     arguments:

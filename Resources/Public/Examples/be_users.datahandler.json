@@ -6,12 +6,11 @@
     "exportedTables": [
       "be_groups"
     ],
-    "totalRecords": 1
+    "totalRecords": 2
   },
   "data": {
     "be_groups": {
       "1": {
-        "referenceTimestamp": 25695488644,
         "fields": {
           "uid": 1,
           "pid": 0,

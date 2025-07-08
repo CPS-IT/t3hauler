@@ -4,13 +4,11 @@ T3Hauler uses a custom structured export format to handle TYPO3 data exports wit
 
 ## Supported Formats
 
-- **JSON** (default): Human-readable, widely supported
-- **XML**: Structured, compatible with TYPO3 legacy systems  
-- **YAML**: Human-readable, configuration-friendly
+- **JSON**: Human-readable, widely supported (only supported format)
 
 ## File Structure
 
-All export formats contain three main sections:
+All exports contain three main sections:
 
 ### 1. Metadata
 Contains export information and configuration:
@@ -51,7 +49,7 @@ Defines relationships between records for proper import ordering:
     "tt_content:101": [
       {
         "field": "pid",
-        "to_table": "pages", 
+        "to_table": "pages",
         "to_uid": 1
       }
     ],
@@ -71,7 +69,7 @@ Defines relationships between records for proper import ordering:
 The export system automatically:
 
 1. **Orders tables** by common TYPO3 dependency patterns
-2. **Identifies relations** through field analysis  
+2. **Identifies relations** through field analysis
 3. **Resolves dependencies** to prevent import conflicts
 4. **Maintains consistency** across multi-table exports
 
@@ -80,13 +78,12 @@ The export system automatically:
 When importing, the system:
 
 1. Validates export file structure and format
-2. Processes tables in dependency order  
+2. Processes tables in dependency order
 3. Resolves relations during record creation
 4. Maintains referential integrity
 
-## Example Export Files
+## Example Export File
 
-### JSON Format
 ```json
 {
   "metadata": {
@@ -103,59 +100,6 @@ When importing, the system:
     "tt_content:102": [{"field": "pid", "to_table": "pages", "to_uid": 1}]
   }
 }
-```
-
-### XML Format
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<t3hauler_export>
-  <metadata>
-    <created_at>1701432000</created_at>
-    <format_version>1.0</format_version>
-    <total_records>3</total_records>
-  </metadata>
-  <records>
-    <table name="pages">
-      <record uid="1"/>
-    </table>
-    <table name="tt_content">
-      <record uid="101"/>
-      <record uid="102"/>
-    </table>
-  </records>
-  <relations>
-    <relation from="tt_content:101" field="pid" to_table="pages" to_uid="1"/>
-    <relation from="tt_content:102" field="pid" to_table="pages" to_uid="1"/>
-  </relations>
-</t3hauler_export>
-```
-
-### YAML Format
-```yaml
-# T3Hauler Export File
-# Generated: 2024-12-01 12:00:00
-
-metadata:
-  created_at: 1701432000
-  format_version: "1.0"
-  total_records: 3
-
-records:
-  pages:
-    - 1
-  tt_content:
-    - 101
-    - 102
-
-relations:
-  "tt_content:101":
-    - field: "pid"
-      to_table: "pages"
-      to_uid: 1
-  "tt_content:102":
-    - field: "pid" 
-      to_table: "pages"
-      to_uid: 1
 ```
 
 ## Migration Workflow
