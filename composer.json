@@ -32,6 +32,11 @@
             "Cpsit\\T3hauler\\": "Classes/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Cpsit\\T3hauler\\Tests\\": "Tests/"
+        }
+    },
     "config": {
         "allow-plugins": {
             "a9f/fractor-extension-installer": true,
@@ -52,6 +57,9 @@
     "scripts": {
         "post-autoload-dump": [
             "mkdir -p .build/log/coverage/"
+        ],
+        "setup-test-env": [
+            "php build-test-environment.php"
         ],
         "fix": [
             "@fix:composer",
@@ -82,13 +90,21 @@
         ],
         "sca:php": "phpstan analyse --memory-limit=1G",
         "test": [
-            "@test:unit"
+            "@test:unit",
+            "@test:functional"
         ],
         "test:coverage": "phpunit -c phpunit.unit.xml --coverage-html .build/log/coverage/",
         "test:coverage-clover": "phpunit -c phpunit.unit.xml --coverage-clover .build/log/coverage/clover.xml",
+        "test:coverage-functional": "phpunit -c phpunit.functional.xml --coverage-html .build/log/coverage-functional/",
+        "test:coverage-functional-clover": "phpunit -c phpunit.functional.xml --coverage-clover .build/log/coverage-functional/clover.xml",
+        "test:functional": [
+            "@setup-test-env",
+            "phpunit -c phpunit.functional.xml"
+        ],
         "test:unit": "phpunit -c phpunit.unit.xml"
     },
     "scripts-descriptions": {
+        "setup-test-env": "Set up TYPO3 test environment for functional tests",
         "fix": "Fix all code quality issues reported by the registered linters",
         "fix:composer": "Fix all issues in `composer.json`",
         "fix:editorconfig": "Fix all styling issues violating the `.editorconfig` rules",
@@ -106,6 +122,9 @@
         "test": "Run all configured test suites",
         "test:coverage": "Run unit tests with HTML coverage report",
         "test:coverage-clover": "Run unit tests with Clover coverage report",
+        "test:coverage-functional": "Run functional tests with HTML coverage report",
+        "test:coverage-functional-clover": "Run functional tests with Clover coverage report",
+        "test:functional": "Run functional tests for the extension",
         "test:unit": "Run unit tests for the extension"
     }
 }

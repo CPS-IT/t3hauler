@@ -106,8 +106,9 @@ class ChangeDetectionService
         }
 
         $setHash = hash($this->configuration->getHashAlgorithm(), implode('|', $hashes));
+        $setIdentifier = $identifier ?? DataSnapshot::generateIdentifier(DataSnapshotRepository::TABLE_NAME);
         $snapshotSet = new DataSnapshot(
-            $identifier,
+            $setIdentifier,
             DataSnapshotRepository::TABLE_NAME,
             $setHash
         );

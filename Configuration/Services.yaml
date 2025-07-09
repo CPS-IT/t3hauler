@@ -11,6 +11,7 @@ services:
 
   # Core services
   Cpsit\T3hauler\Service\ChangeDetectionService:
+    public: true
     arguments:
       $hashUtility: '@Cpsit\T3hauler\Utility\HashUtility'
       $snapshotRepository: '@Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository'
@@ -44,6 +45,7 @@ services:
 
   # Repositories with proper database connection
   Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository:
+    public: true
     arguments:
       $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
 

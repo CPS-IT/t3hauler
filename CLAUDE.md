@@ -24,8 +24,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
   - CLI Commands for data migration operations
 
 ## Build Commands
-- **Test**: `composer test` or `composer test:unit`
-- **Test with Coverage**: `composer test:coverage` (HTML) or `composer test:coverage-clover` (Clover XML)
+- **Test All**: `composer test` (runs both unit and functional tests)
+- **Unit Tests**: `composer test:unit`
+- **Functional Tests**: `composer test:functional`
+- **Test with Coverage**:
+  - Unit: `composer test:coverage` (HTML) or `composer test:coverage-clover` (Clover XML)
+  - Functional: `composer test:coverage-functional` (HTML) or `composer test:coverage-functional-clover` (Clover XML)
 - **Lint All**: `composer lint` (runs all linters)
   - `composer lint:composer` - Validates and checks composer.json normalization
   - `composer lint:php` - PHP coding standards (PHP-CS-Fixer)
@@ -40,11 +44,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
   - `composer fix:fractor` - Applies TYPO3 Fractor TypoScript migrations
 - **Static Code Analysis**: `composer sca:php` (PHPStan level configuration in phpstan.neon)
 - **Security Audit**: `composer audit`
+- **Run Static Analysis**: `composer sca` (alias for `composer sca:php`)
 
 ## Development Dependencies & Tools
 - **Testing**: PHPUnit 11+ with TYPO3 Testing Framework v9.2+
 - **Code Quality**: PHP-CS-Fixer with TYPO3 Coding Standards v0.8+
-- **Static Analysis**: PHPStan 2.1+ with 1GB memory limit
+- **Static Analysis**: PHPStan 2.1+ with 1GB memory limit (configuration in `phpstan.neon`)
 - **Migration Tools**: TYPO3 Rector v3.5+ and TYPO3 Fractor v0.5+
 - **Validation**: EditorConfig CLI, Composer Normalize
 - **Security**: Roave Security Advisories (dev-latest)
@@ -57,6 +62,7 @@ The project uses GitHub Actions with comprehensive quality gates:
   - Static analysis (PHPStan)
   - Migration checks (Rector, Fractor)
   - Unit tests
+  - Functional tests
   - Security audit
 - **Build Matrix**: Tests across PHP 8.3 and 8.4
 - **Integration Tests**: Validates tool executability and config files
@@ -93,11 +99,20 @@ The project uses GitHub Actions with comprehensive quality gates:
 
 ## Testing Strategy
 - **Unit Tests**: PHPUnit 11+ with comprehensive coverage
-- **Mocking**: PHPUnit MockObject for dependencies
+  - Located in `Tests/Unit/`
+  - Extensive mocking of dependencies
+  - Configuration: `phpunit.unit.xml`
+- **Functional Tests**: Integration tests with real database
+  - Located in `Tests/Functional/`
+  - Uses TYPO3 Testing Framework
+  - SQLite database for CI/CD
+  - Test fixtures in `Tests/Functional/Fixtures/Database/`
+  - Configuration: `phpunit.functional.xml`
+- **Test Coverage**: Both unit and functional tests support coverage reporting
 - **Attributes**: Modern PHPUnit test attributes instead of annotations
 - **Test Structure**: Follows TYPO3 testing conventions
-- **Database Testing**: Proper isolation and mocking for database operations
-- **Coverage Reports**: HTML and Clover XML formats available
+- **Database Testing**: Real database operations in functional tests, mocking in unit tests
+- **Coverage Reports**: HTML and Clover XML formats available for both test types
 
 ## Database Schema
 - **Change Records Table**: `tx_t3hauler_change_records`
@@ -118,9 +133,17 @@ The project uses GitHub Actions with comprehensive quality gates:
 - **Follow TYPO3 Conventions**: Extension follows TYPO3 v13 best practices
 - **Test Coverage**: Maintain comprehensive unit test coverage
 - **Code Quality**: Run linters and static analysis before committing
+- **PHPStan Analysis**: ALWAYS run `composer sca` after any code changes to catch type issues
 - **Security**: Never expose sensitive data in logs or exports
 - **Performance**: Consider memory usage for large data operations
 - **Documentation**: Update relevant documentation when adding features
+
+## Static Code Analysis Workflow
+- **Before any commit**: Run `composer sca` to check for type errors
+- **PHPStan Configuration**: Located in `phpstan.neon` with level 8 analysis
+- **Common Issues**: Property type covariance, undefined methods, unused properties
+- **Fixing Type Issues**: Use proper type annotations, avoid redundant assertions
+- **CI Integration**: PHPStan runs automatically in GitHub Actions quality gate
 
 ## Common Operations
 - **Add New Domain Model**: Create in `Classes/Domain/Model/`, add repository, write tests
@@ -128,6 +151,7 @@ The project uses GitHub Actions with comprehensive quality gates:
 - **Extend Change Detection**: Modify ChangeTrackingService, update configuration options
 - **Database Changes**: Update `ext_tables.sql`, create migrations if needed
 - **New Service**: Add to Services.yaml with proper dependency injection
+- **After Code Changes**: Always run `composer sca` to validate type safety
 
 ## Dependencies
 - **Core Dependencies**: TYPO3 CMS Core v13.4+, Doctrine DBAL v4.0+

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<dataset>
+    <!-- Backend users for testing -->
+    <be_users>
+        <uid>1</uid>
+        <username>test_admin</username>
+        <password>$argon2i$v=19$m=65536,t=16,p=1$UnlvY2tVc2VyUGFzcw$6kJgB3kgzdhgUFplKPGgFy8WIRmEMhqFj+k8wP9j4rY</password>
+        <admin>1</admin>
+        <disable>0</disable>
+        <deleted>0</deleted>
+        <starttime>0</starttime>
+        <endtime>0</endtime>
+        <crdate>1701432000</crdate>
+        <tstamp>1701432000</tstamp>
+        <realName>Test Administrator</realName>
+        <email>test@example.com</email>
+        <workspace>0</workspace>
+    </be_users>
+
+    <be_users>
+        <uid>2</uid>
+        <username>test_editor</username>
+        <password>$argon2i$v=19$m=65536,t=16,p=1$UnlvY2tVc2VyUGFzcw$6kJgB3kgzdhgUFplKPGgFy8WIRmEMhqFj+k8wP9j4rY</password>
+        <admin>0</admin>
+        <disable>0</disable>
+        <deleted>0</deleted>
+        <starttime>0</starttime>
+        <endtime>0</endtime>
+        <crdate>1701432100</crdate>
+        <tstamp>1701432100</tstamp>
+        <realName>Test Editor</realName>
+        <email>editor@example.com</email>
+        <workspace>0</workspace>
+    </be_users>
+</dataset>

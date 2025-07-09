@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<dataset>
+    <!-- Root page -->
+    <pages>
+        <uid>1</uid>
+        <pid>0</pid>
+        <title>Root Page</title>
+        <doktype>1</doktype>
+        <deleted>0</deleted>
+        <hidden>0</hidden>
+        <starttime>0</starttime>
+        <endtime>0</endtime>
+        <sorting>256</sorting>
+        <crdate>1701432000</crdate>
+        <tstamp>1701432000</tstamp>
+        <cruser_id>1</cruser_id>
+    </pages>
+
+    <!-- Test pages for change detection -->
+    <pages>
+        <uid>2</uid>
+        <pid>1</pid>
+        <title>Test Page 1</title>
+        <doktype>1</doktype>
+        <deleted>0</deleted>
+        <hidden>0</hidden>
+        <starttime>0</starttime>
+        <endtime>0</endtime>
+        <sorting>256</sorting>
+        <crdate>1701432100</crdate>
+        <tstamp>1701432100</tstamp>
+        <cruser_id>1</cruser_id>
+        <slug>/test-page-1</slug>
+    </pages>
+
+    <pages>
+        <uid>3</uid>
+        <pid>1</pid>
+        <title>Test Page 2</title>
+        <doktype>1</doktype>
+        <deleted>0</deleted>
+        <hidden>1</hidden>
+        <starttime>0</starttime>
+        <endtime>0</endtime>
+        <sorting>512</sorting>
+        <crdate>1701432200</crdate>
+        <tstamp>1701432200</tstamp>
+        <cruser_id>1</cruser_id>
+        <slug>/test-page-2</slug>
+    </pages>
+
+    <!-- Nested page for move operations -->
+    <pages>
+        <uid>4</uid>
+        <pid>2</pid>
+        <title>Nested Page</title>
+        <doktype>1</doktype>
+        <deleted>0</deleted>
+        <hidden>0</hidden>
+        <starttime>0</starttime>
+        <endtime>0</endtime>
+        <sorting>256</sorting>
+        <crdate>1701432300</crdate>
+        <tstamp>1701432300</tstamp>
+        <cruser_id>1</cruser_id>
+        <slug>/test-page-1/nested-page</slug>
+    </pages>
+</dataset>
