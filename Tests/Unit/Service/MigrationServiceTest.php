@@ -112,6 +112,7 @@ class MigrationServiceTest extends TestCase
     public function createMigrationCreatesSuccessfully(): void
     {
         self::markTestSkipped('File system access is required for this test. This test should be a functional test.');
+        // @phpstan-ignore deadCode.unreachable
         $changesSummary = [
             'has_changes' => true,
             'changed_tables' => ['pages'],

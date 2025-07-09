@@ -20,7 +20,6 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 class ExportService
 {
     public function __construct(
-        /** @phpstan-ignore-next-line property.onlyWritten */
         private readonly T3HaulerConfiguration $configuration, // Will be used for export configuration in future versions
         private readonly ConnectionPool $connectionPool,
         private readonly DataSnapshotRepository $dataSnapshotRepository,
@@ -183,6 +182,7 @@ class ExportService
 
     /**
      * Add relations for exported records
+     * @phpstan-ignore method.unused
      */
     private function addRecordRelations(Export $export, array $records): void
     {
@@ -390,6 +390,7 @@ class ExportService
 
     /**
      * Add a new record with NEW<uniqueid> to export
+     * @phpstan-ignore method.unused
      */
     private function addNewRecord(Export $export, string $tableName, string $newUid, array $recordData): void
     {
@@ -400,6 +401,6 @@ class ExportService
         // Add the record with the new UID
         // Note: This is a conceptual implementation - the actual Export model
         // may need modifications to support string UIDs properly
-        $export->addSingleRecord($tableName, $newUid);
+        $export->addSingleRecord($tableName, $newUid, record: $modifiedRecord);
     }
 }

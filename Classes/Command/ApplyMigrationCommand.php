@@ -150,7 +150,7 @@ class ApplyMigrationCommand extends Command
             // Apply migration
             $io->section($dryRun ? 'Migration Preview' : 'Applying Migration');
 
-            $result = $this->importService->importFromFile($dataFilePath, $format, $dryRun);
+            $result = $this->importService->importFromFile($dataFilePath, $dryRun);
 
             if (!$result['success']) {
                 $io->error('Migration application failed: ' . $result['message']);
