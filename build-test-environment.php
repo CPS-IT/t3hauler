@@ -23,7 +23,7 @@ if (!file_exists($localConfigFile)) {
     if (!is_dir($localConfigDir)) {
         mkdir($localConfigDir, 0755, true);
     }
-    
+
     $config = [
         'BE' => [
             'installToolPassword' => '$2y$12$test',
@@ -47,7 +47,7 @@ if (!file_exists($localConfigFile)) {
             ],
         ],
     ];
-    
+
     file_put_contents($localConfigFile, "<?php\nreturn " . var_export($config, true) . ";\n");
 }
 
@@ -71,7 +71,7 @@ if (!file_exists($packageStatesFile)) {
         ],
         'version' => 5,
     ];
-    
+
     file_put_contents($packageStatesFile, "<?php\nreturn " . var_export($packageStates, true) . ";\n");
 }
 

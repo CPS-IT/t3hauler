@@ -178,7 +178,7 @@ final class CreateSnapshotCommandTest extends FunctionalTestCase
     {
         // Create a fresh command tester for this test
         $freshCommandTester = new CommandTester($this->command);
-        
+
         // Execute command with verbose flag
         $exitCode = $freshCommandTester->execute([], ['verbosity' => 2]); // VERBOSITY_VERBOSE
 

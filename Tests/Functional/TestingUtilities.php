@@ -28,7 +28,7 @@ trait TestingUtilities
         $context = GeneralUtility::makeInstance(Context::class);
         $userAspect = GeneralUtility::makeInstance(UserAspect::class, $backendUser);
         $context->setAspect('backend.user', $userAspect);
-        
+
         return $backendUser;
     }
 
