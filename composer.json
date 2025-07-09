@@ -58,9 +58,6 @@
         "post-autoload-dump": [
             "mkdir -p .build/log/coverage/"
         ],
-        "setup-test-env": [
-            "php build-test-environment.php"
-        ],
         "fix": [
             "@fix:composer",
             "@fix:editorconfig",
@@ -89,6 +86,9 @@
             "@sca:php"
         ],
         "sca:php": "phpstan analyse --memory-limit=1G",
+        "setup-test-env": [
+            "php build-test-environment.php"
+        ],
         "test": [
             "@test:unit",
             "@test:functional"
@@ -104,7 +104,6 @@
         "test:unit": "phpunit -c phpunit.unit.xml"
     },
     "scripts-descriptions": {
-        "setup-test-env": "Set up TYPO3 test environment for functional tests",
         "fix": "Fix all code quality issues reported by the registered linters",
         "fix:composer": "Fix all issues in `composer.json`",
         "fix:editorconfig": "Fix all styling issues violating the `.editorconfig` rules",
@@ -119,6 +118,7 @@
         "lint:rector": "Perform code migration analysis with TYPO3 Rector",
         "sca": "Run all registered static code analyzers to detect issues in the codebase",
         "sca:php": "Analyze all PHP files by using PHPStan",
+        "setup-test-env": "Set up TYPO3 test environment for functional tests",
         "test": "Run all configured test suites",
         "test:coverage": "Run unit tests with HTML coverage report",
         "test:coverage-clover": "Run unit tests with Clover coverage report",
