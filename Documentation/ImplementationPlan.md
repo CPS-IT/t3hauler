@@ -111,26 +111,28 @@ The export system automatically:
 
 ### ✅ Phase 1: Foundation (Completed)
 - **Core Infrastructure**: Services.yaml with dependency injection
-- **Configuration Service**: YAML-based settings with dot-notation access
-- **Change Detection**: Hash-based comparison with snapshots
-- **Database Models**: DataSnapshot with repository pattern
-- **CLI Commands**: Basic structure with diff and snapshot commands
-- **Testing**: Comprehensive unit tests (31 tests, 58 assertions)
+- **Configuration Service**: YAML-based settings with dot-notation access via T3HaulerConfiguration
+- **Change Detection**: Hash-based comparison with snapshots via ChangeDetectionService
+- **Database Models**: Complete domain models (Migration, Export, DataSnapshot) with repositories
+- **CLI Commands**: Full command structure with 7 implemented commands
+- **Database Schema**: Two tables (tx_t3hauler_migrations, tx_t3hauler_snapshots) with proper indexes
+- **Testing**: Unit tests covering core functionality (8 test files)
 
 ### ✅ Phase 2: Migration Generation (Completed)
 - **Migration Model**: Full lifecycle management (pending → applied → failed → rolled_back)
-- **Custom Export System**: Replaces TYPO3 internal classes
-- **Export Format**: JSON with relation handling
-- **Migration Service**: Complete orchestration workflow
-- **Enhanced CLI**: Fully functional create command with rich output
-- **Comprehensive Testing**: 54 tests with 196 assertions covering all components
+- **Custom Export System**: Replaces TYPO3 internal classes with JSON format
+- **Export Format**: Structured JSON with metadata, records, and relations
+- **Migration Service**: Complete orchestration workflow for creating migrations
+- **Enhanced CLI**: Fully functional create, list, and diff commands
+- **Hash-based Integrity**: SHA256 hashing for data integrity validation
 
-### 🔄 Phase 3: Migration Application (Next)
-- **Import Service**: Apply migrations with format validation
-- **Integrity Validation**: Pre-application conflict detection
-- **Apply Command**: Complete implementation with dry-run support
-- **Rollback Capability**: Undo applied migrations safely
-- **Error Recovery**: Robust error handling and cleanup
+### 🔄 Phase 3: Migration Application (80% Complete)
+- **Import Service**: Basic structure with validation and dry-run support ✅
+- **Apply Command**: Implemented but needs refinement for actual data import 🔄
+- **Integrity Validation**: Framework exists but needs full implementation 🔄
+- **Error Recovery**: Basic error recovery mechanisms in place ✅
+- **Actual Data Operations**: Missing actual data import/export operations ❌
+- **Relation Resolution**: Limited TCA-based relation handling ❌
 
 ## Current Architecture Benefits
 
@@ -200,22 +202,41 @@ t3hauler:
 
 ## CLI Usage Examples
 
+### Currently Working Commands
+
 ```bash
 # Show detected changes since last snapshot
 ddev typo3 t3hauler:diff
 
 # Create baseline snapshot
-ddev typo3 t3hauler:snapshot --create --identifier="baseline_20241201"
+ddev typo3 t3hauler:snapshot:create --identifier="baseline_20241201"
+
+# List all snapshots
+ddev typo3 t3hauler:snapshot:list
+
+# Clean up old snapshots
+ddev typo3 t3hauler:snapshot:cleanup --days=30
 
 # Create migration from detected changes
-ddev typo3 t3hauler:create "Add news content and pages" --author="Developer" --site=zug
+ddev typo3 t3hauler:create "Add news content and pages" --author="Developer"
 
-# Apply migration (when Phase 3 is complete)
-ddev typo3 t3hauler:apply T3H_20241201120000_abc12345 --validate
+# List all migrations
+ddev typo3 t3hauler:migration:list
 
-# Show migration status
-ddev typo3 t3hauler:status
+# Apply migration (basic implementation)
+ddev typo3 t3hauler:migration:apply T3H_20241201120000_abc12345 --dry-run
+ddev typo3 t3hauler:migration:apply T3H_20241201120000_abc12345
 ```
+
+### Available Commands Overview
+
+1. **`t3hauler:create`** - Create migration from detected changes ✅
+2. **`t3hauler:diff`** - Show pending changes since last snapshot ✅
+3. **`t3hauler:migration:list`** - List all migrations with status ✅
+4. **`t3hauler:migration:apply`** - Apply migration (basic implementation) 🔄
+5. **`t3hauler:snapshot:create`** - Create database snapshot ✅
+6. **`t3hauler:snapshot:list`** - List all snapshots ✅
+7. **`t3hauler:snapshot:cleanup`** - Clean up old snapshots ✅
 
 ## Database Schema
 
@@ -255,8 +276,8 @@ CREATE TABLE tx_t3hauler_snapshots (
 ## Testing Strategy
 
 ### Current Test Coverage
-- **54 tests** with **196 assertions**
-- **Unit tests** for all service classes
+- **8 unit test files** covering core functionality
+- **Unit tests** for service classes, configuration, and utilities
 - **Mock-based testing** for external dependencies
 - **PHPStan level 6** static analysis compliance
 
@@ -305,7 +326,7 @@ class MigrationServiceTest extends TestCase
 - ✅ Generate migrations with structured JSON exports
 - ✅ Hash-based integrity validation system
 - ✅ Configurable for zug-sitepackage project structure
-- ✅ Comprehensive unit test coverage (54 tests)
+- ✅ Unit test coverage for core components (8 test files)
 - ✅ Modern TYPO3 dependency injection architecture
 
 ### Phase 3 (Next Phase)
@@ -318,7 +339,7 @@ class MigrationServiceTest extends TestCase
 
 ### Implemented Safeguards
 1. **No Internal Dependencies**: Avoids breaking on TYPO3 updates
-2. **Comprehensive Testing**: 54 unit tests prevent regressions
+2. **Comprehensive Testing**: Unit tests for core components prevent regressions
 3. **Hash-based Validation**: Prevents data corruption
 4. **Structured Exports**: Reliable format with validation
 5. **Dependency Resolution**: Maintains referential integrity
@@ -329,14 +350,31 @@ class MigrationServiceTest extends TestCase
 3. **Performance**: Optimize for large datasets in Phase 3
 4. **Error Recovery**: Robust rollback and cleanup mechanisms
 
+## Remaining Implementation Gaps
+
+### Critical Missing Features
+1. **Actual Data Import/Export**: The services have structure but don't retrieve/import actual record data
+2. **Record Retrieval**: Export service needs to fetch actual database records for export
+3. **Data Insertion**: Import service needs to insert records into target database
+4. **File Handling**: No support for file references (sys_file, sys_file_reference)
+5. **Complex Relations**: MM relations and inline records not fully supported
+
+### Implementation Priorities
+1. **Priority 1**: Complete actual data import/export operations
+2. **Priority 2**: Implement proper TCA-based relation handling
+3. **Priority 3**: Add file reference support
+4. **Priority 4**: Expand test coverage with integration tests
+5. **Priority 5**: Performance optimization for large datasets
+
 ## Next Steps
 
 ### Phase 3 Development
-1. **Import Service**: Implement structured data import
-2. **Apply Command**: Complete migration application workflow
-3. **Integrity Validation**: Advanced conflict detection
-4. **Rollback System**: Safe undo capabilities
-5. **Error Handling**: Comprehensive error recovery
+1. **Import Service**: Implement structured data import with actual database operations
+2. **Export Service**: Add actual record retrieval and data packaging
+3. **Apply Command**: Complete migration application workflow with real data transfer
+4. **Integrity Validation**: Advanced conflict detection and resolution
+5. **Rollback System**: Safe undo capabilities with state restoration
+6. **Error Handling**: Comprehensive error recovery and cleanup
 
 ### Post-Phase 3 Enhancements
 1. **Backend Module**: Visual migration management interface
