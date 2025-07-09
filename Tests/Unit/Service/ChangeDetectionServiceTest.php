@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Cpsit\T3hauler\Tests\Unit\Service;
 
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
+use Cpsit\T3hauler\Domain\Model\ChangeRecord;
 use Cpsit\T3hauler\Domain\Model\DataSnapshot;
+use Cpsit\T3hauler\Domain\Repository\ChangeRecordRepository;
 use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
 use Cpsit\T3hauler\Utility\HashUtility;
@@ -21,6 +23,8 @@ class ChangeDetectionServiceTest extends TestCase
     private DataSnapshotRepository $snapshotRepository;
     /** @var T3HaulerConfiguration&\PHPUnit\Framework\MockObject\MockObject */
     private T3HaulerConfiguration $configuration;
+    /** @var ChangeRecordRepository&\PHPUnit\Framework\MockObject\MockObject */
+    private ChangeRecordRepository $changeRecordRepository;
 
     protected function setUp(): void
     {
@@ -29,6 +33,7 @@ class ChangeDetectionServiceTest extends TestCase
         $this->hashUtility = $this->createMock(HashUtility::class);
         $this->snapshotRepository = $this->createMock(DataSnapshotRepository::class);
         $this->configuration = $this->createMock(T3HaulerConfiguration::class);
+        $this->changeRecordRepository = $this->createMock(ChangeRecordRepository::class);
 
         $this->configuration->method('getEnabledTables')
             ->willReturn(['pages', 'tt_content']);
@@ -40,7 +45,8 @@ class ChangeDetectionServiceTest extends TestCase
         $this->subject = new ChangeDetectionService(
             $this->hashUtility,
             $this->snapshotRepository,
-            $this->configuration
+            $this->configuration,
+            $this->changeRecordRepository
         );
     }
 
@@ -213,5 +219,128 @@ class ChangeDetectionServiceTest extends TestCase
         $result = $this->subject->cleanupOldSnapshots(30);
 
         self::assertSame(5, $result);
+    }
+
+    #[Test]
+    public function getDetailedChangesReturnsStructuredChangeData(): void
+    {
+        $snapshotUid = 123;
+        $changeRecord = new ChangeRecord();
+        $changeRecord->setUid(1);
+        $changeRecord->setTableName('pages');
+        $changeRecord->setRecordUid(456);
+        $changeRecord->setChangeType('insert');
+        $changeRecord->setDetectedAt(1701432000);
+
+        $this->changeRecordRepository->expects(self::once())
+            ->method('findBySnapshotUid')
+            ->with($snapshotUid)
+            ->willReturn([$changeRecord]);
+
+        $this->changeRecordRepository->expects(self::once())
+            ->method('getStatistics')
+            ->with($snapshotUid)
+            ->willReturn(['insert' => 1, 'update' => 0, 'delete' => 0, 'move' => 0, 'total' => 1]);
+
+        $result = $this->subject->getDetailedChanges($snapshotUid);
+
+        self::assertArrayHasKey('summary', $result);
+        self::assertArrayHasKey('records', $result);
+        self::assertArrayHasKey('by_table', $result);
+        self::assertArrayHasKey('by_type', $result);
+        self::assertCount(1, $result['records']);
+        self::assertArrayHasKey('pages', $result['by_table']);
+        self::assertArrayHasKey('insert', $result['by_type']);
+    }
+
+    #[Test]
+    public function getTableChangesReturnsChangesForSpecificTable(): void
+    {
+        $tableName = 'pages';
+        $snapshotUid = 123;
+        $expectedChanges = [new ChangeRecord()];
+
+        $this->changeRecordRepository->expects(self::once())
+            ->method('findByTableName')
+            ->with($tableName, $snapshotUid)
+            ->willReturn($expectedChanges);
+
+        $result = $this->subject->getTableChanges($tableName, $snapshotUid);
+
+        self::assertSame($expectedChanges, $result);
+    }
+
+    #[Test]
+    public function getRecordChangesReturnsChangesForSpecificRecord(): void
+    {
+        $tableName = 'pages';
+        $recordUid = 456;
+        $snapshotUid = 123;
+        $expectedChanges = [new ChangeRecord()];
+
+        $this->changeRecordRepository->expects(self::once())
+            ->method('findByTableAndRecord')
+            ->with($tableName, $recordUid, $snapshotUid)
+            ->willReturn($expectedChanges);
+
+        $result = $this->subject->getRecordChanges($tableName, $recordUid, $snapshotUid);
+
+        self::assertSame($expectedChanges, $result);
+    }
+
+    #[Test]
+    public function hasTrackedChangesReturnsTrueWhenChangesExist(): void
+    {
+        $snapshotUid = 123;
+
+        $this->changeRecordRepository->expects(self::once())
+            ->method('countBySnapshotUid')
+            ->with($snapshotUid)
+            ->willReturn(5);
+
+        $result = $this->subject->hasTrackedChanges($snapshotUid);
+
+        self::assertTrue($result);
+    }
+
+    #[Test]
+    public function hasTrackedChangesReturnsFalseWhenNoChangesExist(): void
+    {
+        $snapshotUid = 123;
+
+        $this->changeRecordRepository->expects(self::once())
+            ->method('countBySnapshotUid')
+            ->with($snapshotUid)
+            ->willReturn(0);
+
+        $result = $this->subject->hasTrackedChanges($snapshotUid);
+
+        self::assertFalse($result);
+    }
+
+    #[Test]
+    public function getCurrentSnapshotReturnsCurrentSnapshot(): void
+    {
+        $expectedSnapshot = new DataSnapshot('current', 'tx_t3hauler_snapshots', 'hash123');
+
+        $this->snapshotRepository->expects(self::once())
+            ->method('findCurrentSnapshot')
+            ->willReturn($expectedSnapshot);
+
+        $result = $this->subject->getCurrentSnapshot();
+
+        self::assertSame($expectedSnapshot, $result);
+    }
+
+    #[Test]
+    public function getCurrentSnapshotReturnsNullWhenNoCurrentSnapshot(): void
+    {
+        $this->snapshotRepository->expects(self::once())
+            ->method('findCurrentSnapshot')
+            ->willReturn(null);
+
+        $result = $this->subject->getCurrentSnapshot();
+
+        self::assertNull($result);
     }
 }

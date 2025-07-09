@@ -141,6 +141,14 @@ class HashUtility
     }
 
     /**
+     * Generate hash for an array of data
+     */
+    public static function hashArray(array $data, string $algorithm = 'sha256'): string
+    {
+        return hash($algorithm, serialize($data));
+    }
+
+    /**
      * Validate hash algorithm
      */
     public function isValidAlgorithm(string $algorithm): bool

@@ -212,6 +212,25 @@ class DataSnapshotRepository
     }
 
     /**
+     * Find the current snapshot for change tracking
+     */
+    public function findCurrentSnapshot(): ?DataSnapshot
+    {
+        $connection = $this->getConnection();
+        $queryBuilder = $connection->createQueryBuilder();
+
+        $row = $queryBuilder->select('*')
+            ->from(self::TABLE_NAME)
+            ->where($queryBuilder->expr()->eq('table_name', $queryBuilder->createNamedParameter(self::TABLE_NAME)))
+            ->orderBy('created_at', 'DESC')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return $row ? DataSnapshot::fromArray($row) : null;
+    }
+
+    /**
      * Get database connection
      */
     private function getConnection(): Connection

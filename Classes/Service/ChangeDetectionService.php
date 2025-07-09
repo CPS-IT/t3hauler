@@ -6,6 +6,7 @@ namespace Cpsit\T3hauler\Service;
 
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Domain\Model\DataSnapshot;
+use Cpsit\T3hauler\Domain\Repository\ChangeRecordRepository;
 use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
 use Cpsit\T3hauler\Utility\HashUtility;
 
@@ -19,7 +20,8 @@ class ChangeDetectionService
     public function __construct(
         private readonly HashUtility $hashUtility,
         private readonly DataSnapshotRepository $snapshotRepository,
-        private readonly T3HaulerConfiguration $configuration
+        private readonly T3HaulerConfiguration $configuration,
+        private readonly ChangeRecordRepository $changeRecordRepository
     ) {}
 
     /**
@@ -217,6 +219,90 @@ class ChangeDetectionService
             'changed' => $hasChanges,
             'time_difference' => $snapshot2->getCreatedAt()->getTimestamp() - $snapshot1->getCreatedAt()->getTimestamp(),
         ];
+    }
+
+    /**
+     * Get detailed record-level changes for a snapshot
+     */
+    public function getDetailedChanges(int $snapshotUid): array
+    {
+        $changeRecords = $this->changeRecordRepository->findBySnapshotUid($snapshotUid);
+
+        $changes = [
+            'summary' => $this->changeRecordRepository->getStatistics($snapshotUid),
+            'records' => [],
+            'by_table' => [],
+            'by_type' => [],
+        ];
+
+        foreach ($changeRecords as $changeRecord) {
+            $tableName = $changeRecord->getTableName();
+            $changeType = $changeRecord->getChangeType();
+
+            $changeData = [
+                'uid' => $changeRecord->getUid(),
+                'table_name' => $tableName,
+                'record_uid' => $changeRecord->getRecordUid(),
+                'record_pid' => $changeRecord->getRecordPid(),
+                'change_type' => $changeType,
+                'field_changes' => $changeRecord->getFieldChangesArray(),
+                'record_hash' => $changeRecord->getRecordHash(),
+                'previous_hash' => $changeRecord->getPreviousHash(),
+                'detected_at' => $changeRecord->getDetectedAt(),
+                'be_user' => $changeRecord->getBeUser(),
+                'workspace' => $changeRecord->getWorkspace(),
+                'language_uid' => $changeRecord->getLanguageUid(),
+                'correlation_id' => $changeRecord->getCorrelationId(),
+            ];
+
+            $changes['records'][] = $changeData;
+
+            // Group by table
+            if (!isset($changes['by_table'][$tableName])) {
+                $changes['by_table'][$tableName] = [];
+            }
+            $changes['by_table'][$tableName][] = $changeData;
+
+            // Group by type
+            if (!isset($changes['by_type'][$changeType])) {
+                $changes['by_type'][$changeType] = [];
+            }
+            $changes['by_type'][$changeType][] = $changeData;
+        }
+
+        return $changes;
+    }
+
+    /**
+     * Get changes for a specific table since a snapshot
+     */
+    public function getTableChanges(string $tableName, int $snapshotUid): array
+    {
+        return $this->changeRecordRepository->findByTableName($tableName, $snapshotUid);
+    }
+
+    /**
+     * Get changes for a specific record
+     */
+    public function getRecordChanges(string $tableName, int $recordUid, int $snapshotUid): array
+    {
+        return $this->changeRecordRepository->findByTableAndRecord($tableName, $recordUid, $snapshotUid);
+    }
+
+    /**
+     * Check if there are tracked changes for a snapshot
+     */
+    public function hasTrackedChanges(int $snapshotUid): bool
+    {
+        return $this->changeRecordRepository->countBySnapshotUid($snapshotUid) > 0;
+    }
+
+    /**
+     * Get current snapshot for tracking changes
+     */
+    public function getCurrentSnapshot(): ?DataSnapshot
+    {
+        return $this->snapshotRepository->findCurrentSnapshot();
     }
 
     /**

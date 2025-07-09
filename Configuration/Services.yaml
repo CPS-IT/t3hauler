@@ -14,6 +14,8 @@ services:
     arguments:
       $hashUtility: '@Cpsit\T3hauler\Utility\HashUtility'
       $snapshotRepository: '@Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository'
+      $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
+      $changeRecordRepository: '@Cpsit\T3hauler\Domain\Repository\ChangeRecordRepository'
 
   # Migration services
   Cpsit\T3hauler\Service\MigrationService:
@@ -48,3 +50,20 @@ services:
   Cpsit\T3hauler\Domain\Repository\MigrationRepository:
     arguments:
       $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
+
+  Cpsit\T3hauler\Domain\Repository\ChangeRecordRepository:
+    arguments:
+      $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
+
+  # Change tracking services
+  Cpsit\T3hauler\Service\ChangeTrackingService:
+    arguments:
+      $changeRecordRepository: '@Cpsit\T3hauler\Domain\Repository\ChangeRecordRepository'
+      $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
+
+  # DataHandler hook
+  Cpsit\T3hauler\Hook\DataHandlerHook:
+    arguments:
+      $changeTrackingService: '@Cpsit\T3hauler\Service\ChangeTrackingService'
+      $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
+      $snapshotRepository: '@Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository'
