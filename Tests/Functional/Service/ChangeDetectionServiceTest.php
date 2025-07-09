@@ -10,10 +10,10 @@ use Cpsit\T3hauler\Domain\Repository\ChangeRecordRepository;
 use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
 use Cpsit\T3hauler\Tests\Functional\TestingUtilities;
-use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 use Cpsit\T3hauler\Utility\HashUtility;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Functional tests for ChangeDetectionService

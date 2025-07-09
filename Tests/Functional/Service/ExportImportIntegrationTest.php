@@ -5,16 +5,13 @@ declare(strict_types=1);
 namespace Cpsit\T3hauler\Tests\Functional\Service;
 
 use Cpsit\T3hauler\Domain\Model\Migration;
-use Cpsit\T3hauler\Domain\Repository\MigrationRepository;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
-use Cpsit\T3hauler\Service\ChangeTrackingService;
 use Cpsit\T3hauler\Service\ExportService;
 use Cpsit\T3hauler\Service\ImportService;
-use Cpsit\T3hauler\Service\MigrationService;
 use Cpsit\T3hauler\Tests\Functional\TestingUtilities;
-use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Integration tests for export/import functionality

@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Tests\Functional\Hook;
 
-use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
-use Cpsit\T3hauler\Domain\Repository\ChangeRecordRepository;
-use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
 use Cpsit\T3hauler\Tests\Functional\TestingUtilities;
-use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Functional tests for DataHandler integration with change tracking
