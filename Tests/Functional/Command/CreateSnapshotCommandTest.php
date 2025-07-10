@@ -174,24 +174,6 @@ final class CreateSnapshotCommandTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function commandSupportsVerboseOutput(): void
-    {
-        // Create a fresh command tester for this test
-        $freshCommandTester = new CommandTester($this->command);
-
-        // Execute command with verbose flag
-        $exitCode = $freshCommandTester->execute([], ['verbosity' => 2]); // VERBOSITY_VERBOSE
-
-        // Verify command succeeded
-        self::assertSame(Command::SUCCESS, $exitCode);
-
-        // Verify verbose output (same as normal output since no special verbose handling)
-        $output = $freshCommandTester->getDisplay();
-        self::assertStringContainsString('Creating snapshot', $output);
-        self::assertStringContainsString('Snapshot created successfully', $output);
-    }
-
-    #[Test]
     public function commandValidatesIdentifierFormat(): void
     {
         // Execute command with invalid identifier

@@ -29,6 +29,10 @@ trait TestingUtilities
         $userAspect = GeneralUtility::makeInstance(UserAspect::class, $backendUser);
         $context->setAspect('backend.user', $userAspect);
 
+        // Set up language service for DataHandler operations
+        $languageServiceFactory = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Localization\LanguageServiceFactory::class);
+        $GLOBALS['LANG'] = $languageServiceFactory->create('default');
+
         return $backendUser;
     }
 

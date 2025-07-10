@@ -21,6 +21,7 @@ class DataHandlerHook implements SingletonInterface
     private T3HaulerConfiguration $configuration;
     private DataSnapshotRepository $snapshotRepository;
     private array $beforeUpdateData = [];
+    private ?string $currentCorrelationId = null;
 
     public function __construct(
         ChangeTrackingService $changeTrackingService,
@@ -40,9 +41,10 @@ class DataHandlerHook implements SingletonInterface
     public function processDatamap_beforeStart(DataHandler $dataHandler): void
     {
         $this->beforeUpdateData = [];
+        $this->currentCorrelationId = null; // Reset for new operation
 
         // Only track if we have enabled tables configured
-        $enabledTables = $this->configuration->get('detection.enabledTables', []);
+        $enabledTables = $this->getEnabledTables();
         if (empty($enabledTables)) {
             return;
         }
@@ -78,7 +80,7 @@ class DataHandlerHook implements SingletonInterface
         DataHandler $dataHandler
     ): void {
         try {
-            $enabledTables = $this->configuration->get('detection.enabledTables', []);
+            $enabledTables = $this->getEnabledTables();
             if (!in_array($table, $enabledTables, true)) {
                 return;
             }
@@ -139,10 +141,11 @@ class DataHandlerHook implements SingletonInterface
         string $table,
         int $uid,
         array $record,
+        bool &$recordWasDeleted,
         DataHandler $dataHandler
     ): void {
         try {
-            $enabledTables = $this->configuration->get('detection.enabledTables', []);
+            $enabledTables = $this->getEnabledTables();
             if (!in_array($table, $enabledTables, true)) {
                 return;
             }
@@ -171,17 +174,19 @@ class DataHandlerHook implements SingletonInterface
     }
 
     /**
-     * Hook called after a record is moved
+     * Hook called after any command is processed (move, copy, etc.)
      */
-    public function processCmdmap_moveAction(
+    public function processCmdmap_postProcess(
+        string $command,
         string $table,
-        int $uid,
-        int $destPid,
-        array $record,
-        DataHandler $dataHandler
+        $id,
+        $value,
+        DataHandler $dataHandler,
+        $pasteUpdate,
+        $pasteDatamap
     ): void {
         try {
-            $enabledTables = $this->configuration->get('detection.enabledTables', []);
+            $enabledTables = $this->getEnabledTables();
             if (!in_array($table, $enabledTables, true)) {
                 return;
             }
@@ -194,19 +199,25 @@ class DataHandlerHook implements SingletonInterface
             $backendUser = $this->getBackendUser();
             $correlationId = $this->generateCorrelationId();
 
-            $previousData = $this->beforeUpdateData[$table][$uid] ?? $record;
-            $this->trackRecordChange(
-                $currentSnapshot->getUid(),
-                $table,
-                $uid,
-                'move',
-                ['pid' => $destPid],
-                $previousData,
-                $backendUser,
-                $correlationId
-            );
+            // Handle move operations
+            if ($command === 'move' && is_numeric($id)) {
+                $uid = (int)$id;
+                $destPid = (int)$value;
+                $previousData = $this->beforeUpdateData[$table][$uid] ?? null;
+                
+                $this->trackRecordChange(
+                    $currentSnapshot->getUid(),
+                    $table,
+                    $uid,
+                    'move',
+                    ['pid' => $destPid],
+                    $previousData,
+                    $backendUser,
+                    $correlationId
+                );
+            }
         } catch (\Throwable $e) {
-            $this->logError('Error tracking record move', $e);
+            $this->logError('Error tracking command operation', $e);
         }
     }
 
@@ -274,7 +285,26 @@ class DataHandlerHook implements SingletonInterface
      */
     private function generateCorrelationId(): string
     {
-        return uniqid('t3h_', true);
+        if ($this->currentCorrelationId === null) {
+            $this->currentCorrelationId = uniqid('t3h_', true);
+        }
+        return $this->currentCorrelationId;
+    }
+
+    /**
+     * Get enabled tables from configuration or fallback to extension configuration
+     */
+    private function getEnabledTables(): array
+    {
+        // First try the YAML configuration
+        $enabledTables = $this->configuration->getEnabledTables();
+        
+        // If empty, try the extension configuration (used in tests)
+        if (empty($enabledTables)) {
+            $enabledTables = $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['t3hauler']['detection']['enabledTables'] ?? [];
+        }
+        
+        return $enabledTables;
     }
 
     /**

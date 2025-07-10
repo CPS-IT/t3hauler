@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Tests\Functional\Service;
 
-use Cpsit\T3hauler\Domain\Model\Migration;
+use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
+use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
 use Cpsit\T3hauler\Service\ExportService;
 use Cpsit\T3hauler\Service\ImportService;
 use Cpsit\T3hauler\Tests\Functional\TestingUtilities;
 use PHPUnit\Framework\Attributes\Test;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
@@ -49,9 +51,20 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
     {
         parent::setUp();
         $this->setUpT3HaulerTests();
+        $configuration = GeneralUtility::makeInstance(T3HaulerConfiguration::class);
+        $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
 
-        $this->exportService = GeneralUtility::makeInstance(ExportService::class);
-        $this->importService = GeneralUtility::makeInstance(ImportService::class);
+        $this->exportService = GeneralUtility::makeInstance(
+            ExportService::class,
+            $configuration,
+            $connectionPool,
+            GeneralUtility::makeInstance(DataSnapshotRepository::class),
+        );
+        $this->importService = GeneralUtility::makeInstance(
+            ImportService::class,
+            $configuration,
+            $connectionPool,
+        );
         $this->changeDetectionService = GeneralUtility::makeInstance(ChangeDetectionService::class);
 
         // Create temporary directory for test files
@@ -75,9 +88,8 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
     {
         // Create a migration with some basic data
         $migrationData = [
-            'identifier' => 'test_migration_001',
+            'migration_id' => 'test_migration_001',
             'description' => 'Test migration for export/import',
-            'version' => '1.0.0',
             'author' => 'Test Author',
             'status' => 'pending',
             'created_at' => time(),
@@ -136,13 +148,11 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
 
         // Create migration
         $migrationData = [
-            'identifier' => 'migration_with_changes',
+            'migration_id' => 'migration_with_changes',
             'description' => 'Migration with change records',
-            'version' => '1.0.1',
             'author' => 'Test Author',
             'status' => 'pending',
             'created_at' => time(),
-            'snapshot_uid' => $snapshotUid,
         ];
 
         $migrationUid = $this->insertTestData('tx_t3hauler_migrations', $migrationData);
@@ -230,9 +240,8 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
     {
         // Create migration
         $migrationData = [
-            'identifier' => 'format_test_migration',
+            'migration_id' => 'format_test_migration',
             'description' => 'Testing different export formats',
-            'version' => '1.0.0',
             'author' => 'Format Tester',
             'status' => 'pending',
             'created_at' => time(),
@@ -260,9 +269,8 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
     {
         // Create comprehensive migration data
         $migrationData = [
-            'identifier' => 'integrity_test_migration',
+            'migration_id' => 'integrity_test_migration',
             'description' => 'Testing data integrity during round trip',
-            'version' => '2.1.0',
             'author' => 'Integrity Tester',
             'status' => 'pending',
             'created_at' => time(),
@@ -316,9 +324,8 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
     {
         // Create and export migration
         $migrationData = [
-            'identifier' => 'duplicate_test_migration',
+            'migration_id' => 'duplicate_test_migration',
             'description' => 'Testing duplicate handling',
-            'version' => '1.0.0',
             'author' => 'Test Author',
             'status' => 'pending',
             'created_at' => time(),
@@ -354,13 +361,12 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
         // Create migration
         $timestamp = time();
         $migrationData = [
-            'identifier' => 'metadata_test_migration',
+            'migration_id' => 'metadata_test_migration',
+            'name' => 'Metadata Test Migration',
             'description' => 'Testing metadata export',
-            'version' => '1.0.0',
             'author' => 'Metadata Tester',
             'status' => 'pending',
             'created_at' => $timestamp,
-            'updated_at' => $timestamp + 100,
         ];
 
         $migrationUid = $this->insertTestData('tx_t3hauler_migrations', $migrationData);

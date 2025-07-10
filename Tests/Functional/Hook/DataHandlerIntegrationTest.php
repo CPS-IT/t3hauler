@@ -44,7 +44,17 @@ final class DataHandlerIntegrationTest extends FunctionalTestCase
         parent::setUp();
         $this->setUpT3HaulerTests();
 
+        // Set up backend user (required for DataHandler)
+        $this->setUpBackendUser(1);
+
+        // Create DataHandler using GeneralUtility to ensure proper initialization
         $this->dataHandler = GeneralUtility::makeInstance(DataHandler::class);
+        
+        // Initialize DataHandler with start() method to set up all required properties
+        $this->dataHandler->start([], [], $GLOBALS['BE_USER']);
+        
+        // Set additional required properties
+        $this->dataHandler->admin = true;
 
         // Create a current snapshot for change tracking
         $this->createCurrentSnapshot();
@@ -170,9 +180,17 @@ final class DataHandlerIntegrationTest extends FunctionalTestCase
         self::assertEmpty($this->dataHandler->errorLog);
 
         // Verify page was deleted (marked as deleted)
-        $deletedPage = $this->getConnectionForTable('pages')
-            ->select(['deleted'], 'pages', ['uid' => 3])
+        // Query without deleted restriction to see all records
+        $queryBuilder = $this->getConnectionForTable('pages')->createQueryBuilder();
+        $queryBuilder->getRestrictions()->removeAll();
+        $deletedPage = $queryBuilder
+            ->select('deleted')
+            ->from('pages')
+            ->where($queryBuilder->expr()->eq('uid', 3))
+            ->executeQuery()
             ->fetchAssociative();
+        
+        self::assertNotFalse($deletedPage, 'Page with UID 3 should still exist but be marked as deleted');
         self::assertSame(1, $deletedPage['deleted']);
 
         // Verify change record was created
@@ -282,17 +300,14 @@ final class DataHandlerIntegrationTest extends FunctionalTestCase
     #[Test]
     public function dataHandlerSkipsDisabledTables(): void
     {
-        // Configure to only track pages (not tt_content)
-        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['t3hauler']['detection']['enabledTables'] = ['pages'];
-
         // No change records initially
         $this->assertTableCount('tx_t3hauler_change_records', 0);
 
-        // Update content element (should not be tracked)
+        // Try to update be_users (should not be tracked - not in enabled tables)
         $datamap = [
-            'tt_content' => [
+            'be_users' => [
                 1 => [
-                    'header' => 'Updated Content Header',
+                    'realName' => 'Updated Test User',
                 ],
             ],
         ];
@@ -386,7 +401,7 @@ final class DataHandlerIntegrationTest extends FunctionalTestCase
             'hash' => 'current_test_hash',
             'created_at' => time(),
             'metadata' => '{}',
-            'is_current' => 1,
+            'migration_version' => '1.0.0',
         ];
 
         $this->insertTestData('tx_t3hauler_snapshots', $snapshotData);

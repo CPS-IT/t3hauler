@@ -15,13 +15,13 @@ use Cpsit\T3hauler\Utility\HashUtility;
  *
  * Compares current table state with stored snapshots to identify changes
  */
-class ChangeDetectionService
+readonly class ChangeDetectionService
 {
     public function __construct(
-        private readonly HashUtility $hashUtility,
-        private readonly DataSnapshotRepository $snapshotRepository,
-        private readonly T3HaulerConfiguration $configuration,
-        private readonly ChangeRecordRepository $changeRecordRepository
+        private HashUtility            $hashUtility,
+        private DataSnapshotRepository $snapshotRepository,
+        private T3HaulerConfiguration  $configuration,
+        private ChangeRecordRepository $changeRecordRepository
     ) {}
 
     /**

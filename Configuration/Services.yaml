@@ -69,3 +69,8 @@ services:
       $changeTrackingService: '@Cpsit\T3hauler\Service\ChangeTrackingService'
       $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
       $snapshotRepository: '@Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository'
+
+  # Console commands
+  Cpsit\T3hauler\Command\CreateSnapshotCommand:
+    arguments:
+      $changeDetectionService: '@Cpsit\T3hauler\Service\ChangeDetectionService'
