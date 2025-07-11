@@ -168,7 +168,7 @@ class HashUtility
 
             if ($primaryKey !== null) {
                 $columns = $primaryKey->getColumns();
-                return $columns[0] ?? null;
+                return $columns[0];
             }
         } catch (\Throwable $e) {
             // Fallback to 'uid' which is standard in TYPO3
