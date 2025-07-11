@@ -69,6 +69,7 @@ final class DataHandlerHookTest extends TestCase
         $this->subject->processDatamap_beforeStart($this->dataHandler);
 
         // Assert that the method completed successfully
+        /** @phpstan-ignore-next-line staticMethod.alreadyNarrowedTyp */
         self::assertTrue(true);
     }
 
@@ -87,6 +88,7 @@ final class DataHandlerHookTest extends TestCase
         $this->subject->processDatamap_beforeStart($this->dataHandler);
 
         // Assert that the method completed successfully
+        /** @phpstan-ignore-next-line staticMethod.alreadyNarrowedTyp */
         self::assertTrue(true);
     }
 

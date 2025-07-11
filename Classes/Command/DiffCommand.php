@@ -164,8 +164,7 @@ class DiffCommand extends Command
             $statusIcon = match ($status) {
                 TableStatus::CHANGED => '🔴',
                 TableStatus::UNCHANGED => '🟢',
-                TableStatus::NO_BASELINE => '🟡',
-                default => '❓'
+                TableStatus::NO_BASELINE => '🟡'
             };
 
             $rows[] = [

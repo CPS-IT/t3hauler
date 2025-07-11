@@ -8,33 +8,35 @@ namespace Cpsit\T3hauler\Tests\Unit\Service;
 
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Service\ImportService;
+use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 
 class ImportServiceTest extends TestCase
 {
     private ImportService $subject;
     /** @var T3HaulerConfiguration&MockObject */
     private T3HaulerConfiguration $configurationMock;
-    /** @var \TYPO3\CMS\Core\Database\ConnectionPool&MockObject */
+    /** @var ConnectionPool|MockObject */
     private $connectionPoolMock;
-    /** @var \TYPO3\CMS\Core\Database\Connection&MockObject */
+    /** @var Connection|MockObject */
     private $connectionMock;
-    /** @var \TYPO3\CMS\Core\Database\Query\QueryBuilder&MockObject */
-    /** @phpstan-ignore-next-line property.onlyWritten */
+    /** @var QueryBuilder|MockObject */
     private $queryBuilderMock;
-    /** @var \Doctrine\DBAL\Schema\AbstractSchemaManager&MockObject */
+    /** @var AbstractSchemaManager|MockObject */
     private $schemaManagerMock;
 
     protected function setUp(): void
     {
         $this->configurationMock = $this->createMock(T3HaulerConfiguration::class);
         $this->connectionPoolMock = $this->createMock(ConnectionPool::class);
-        $this->connectionMock = $this->createMock(\TYPO3\CMS\Core\Database\Connection::class);
-        $this->queryBuilderMock = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
-        $this->schemaManagerMock = $this->createMock(\Doctrine\DBAL\Schema\AbstractSchemaManager::class);
+        $this->connectionMock = $this->createMock(Connection::class);
+        $this->queryBuilderMock = $this->createMock(QueryBuilder::class);
+        $this->schemaManagerMock = $this->createMock(AbstractSchemaManager::class);
 
         $this->subject = new ImportService(
             $this->configurationMock,

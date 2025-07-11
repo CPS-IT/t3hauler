@@ -92,6 +92,6 @@ readonly class ChangeDetectionResult
     public function hasTableChanges(string $tableName): bool
     {
         $tableChanges = $this->getTableChanges($tableName);
-        return $tableChanges?->hasChanges ?? false;
+        return $tableChanges->hasChanges ?? false;
     }
 }
