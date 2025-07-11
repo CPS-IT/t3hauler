@@ -112,7 +112,38 @@ class T3HaulerConfiguration
      */
     public function getExcludedFields(): array
     {
-        return $this->get('t3hauler.detection.excludeFields', ['tstamp', 'crdate', 'cruser_id']);
+        return $this->get('t3hauler.detection.excludeFields', [
+            // Standard TYPO3 system fields
+            'tstamp',
+            'crdate',
+            'cruser_id',
+            'SYS_LASTCHANGED',      // System last change timestamp
+
+            // Workspace/Versioning fields
+            't3ver_oid',            // Workspace original ID
+            't3ver_wsid',           // Workspace ID
+            't3ver_state',          // Workspace version state
+            't3ver_stage',          // Workspace stage
+            't3ver_count',          // Version count
+            't3ver_tstamp',         // Version timestamp
+            't3ver_move_id',        // Version move ID
+
+            // Localization fields
+            'l10n_state',           // Localization state
+            'l10n_diffsource',      // Localization diff source
+
+            // Permission fields
+            'perms_userid',         // Permission user ID
+            'perms_groupid',        // Permission group ID
+            'perms_user',           // User permissions
+            'perms_group',          // Group permissions
+            'perms_everybody',      // Everyone permissions
+
+            // Other potentially auto-updating fields
+            'editlock',             // Edit lock status
+            'fe_group',             // Frontend group (may be auto-calculated)
+            'rowDescription',       // Row description (may be auto-generated)
+        ]);
     }
 
     /**

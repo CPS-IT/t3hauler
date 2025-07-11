@@ -269,7 +269,7 @@ class ImportService
     /**
      * Import records for a specific table
      */
-    private function importTableRecords(string $tableName, array $uids, array $relations): array
+    private function importTableRecords(string $tableName, array $recordsData, array $relations): array
     {
         try {
             if (!$this->tableExists($tableName)) {
@@ -283,10 +283,33 @@ class ImportService
             $importedCount = 0;
             $connection = $this->connectionPool->getConnectionForTable($tableName);
 
-            foreach ($uids as $uid) {
-                // In a real implementation, this would retrieve actual record data
-                // and insert/update it. For now, we simulate the process.
-                $importedCount++;
+            foreach ($recordsData as $uid => $recordData) {
+                // Skip if record data is not available
+                if (!is_array($recordData)) {
+                    continue;
+                }
+
+                // Remove the uid field as it will be auto-generated or handled separately
+                $insertData = $recordData;
+                unset($insertData['uid']);
+
+                try {
+                    // Check if record already exists (for tables with unique constraints)
+                    $existing = $this->findExistingRecord($connection, $tableName, $insertData);
+
+                    if ($existing) {
+                        // Record already exists, skip or update depending on strategy
+                        // For now, we skip duplicates
+                        continue;
+                    }
+
+                    // Insert the record
+                    $connection->insert($tableName, $insertData);
+                    $importedCount++;
+                } catch (\Exception $e) {
+                    // Log error but continue with other records
+                    error_log("Failed to import record {$uid} in table {$tableName}: " . $e->getMessage());
+                }
             }
 
             return [
@@ -391,6 +414,31 @@ class ImportService
             'modified_records' => [],
             'details' => 'Detailed conflict analysis not yet implemented',
         ];
+    }
+
+    /**
+     * Find existing record to check for duplicates
+     */
+    private function findExistingRecord($connection, string $tableName, array $recordData): ?array
+    {
+        try {
+            // For migration table, check by migration_id
+            if ($tableName === 'tx_t3hauler_migrations' && isset($recordData['migration_id'])) {
+                $queryBuilder = $connection->createQueryBuilder();
+                return $queryBuilder
+                    ->select('*')
+                    ->from($tableName)
+                    ->where($queryBuilder->expr()->eq('migration_id', $queryBuilder->createNamedParameter($recordData['migration_id'])))
+                    ->setMaxResults(1)
+                    ->executeQuery()
+                    ->fetchAssociative() ?: null;
+            }
+
+            // For other tables, could implement other unique field checks
+            return null;
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
 }

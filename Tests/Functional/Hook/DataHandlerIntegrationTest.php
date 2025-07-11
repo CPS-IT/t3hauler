@@ -49,10 +49,10 @@ final class DataHandlerIntegrationTest extends FunctionalTestCase
 
         // Create DataHandler using GeneralUtility to ensure proper initialization
         $this->dataHandler = GeneralUtility::makeInstance(DataHandler::class);
-        
+
         // Initialize DataHandler with start() method to set up all required properties
         $this->dataHandler->start([], [], $GLOBALS['BE_USER']);
-        
+
         // Set additional required properties
         $this->dataHandler->admin = true;
 
@@ -189,7 +189,7 @@ final class DataHandlerIntegrationTest extends FunctionalTestCase
             ->where($queryBuilder->expr()->eq('uid', 3))
             ->executeQuery()
             ->fetchAssociative();
-        
+
         self::assertNotFalse($deletedPage, 'Page with UID 3 should still exist but be marked as deleted');
         self::assertSame(1, $deletedPage['deleted']);
 

@@ -11,6 +11,7 @@ use Cpsit\T3hauler\Service\ImportService;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 
 class ImportServiceTest extends TestCase
 {
@@ -30,7 +31,7 @@ class ImportServiceTest extends TestCase
     protected function setUp(): void
     {
         $this->configurationMock = $this->createMock(T3HaulerConfiguration::class);
-        $this->connectionPoolMock = $this->createMock(\TYPO3\CMS\Core\Database\ConnectionPool::class);
+        $this->connectionPoolMock = $this->createMock(ConnectionPool::class);
         $this->connectionMock = $this->createMock(\TYPO3\CMS\Core\Database\Connection::class);
         $this->queryBuilderMock = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
         $this->schemaManagerMock = $this->createMock(\Doctrine\DBAL\Schema\AbstractSchemaManager::class);
@@ -75,7 +76,10 @@ class ImportServiceTest extends TestCase
                 'total_records' => 2,
             ],
             'records' => [
-                'pages' => [1, 2],
+                'pages' => [
+                    '1' => ['title' => 'Page 1', 'uid' => 1],
+                    '2' => ['title' => 'Page 2', 'uid' => 2],
+                ],
             ],
             'relations' => [],
         ];
@@ -83,7 +87,7 @@ class ImportServiceTest extends TestCase
         $tempFile = tempnam(sys_get_temp_dir(), 'test_');
         file_put_contents($tempFile, json_encode($exportData));
 
-        // Mock table existence check - called 3 times: once for simulation, twice for actual import
+        // Mock table existence check
         $this->connectionPoolMock
             ->expects(self::atLeast(2))
             ->method('getConnectionForTable')
@@ -100,6 +104,55 @@ class ImportServiceTest extends TestCase
             ->method('tablesExist')
             ->with(['pages'])
             ->willReturn(true);
+
+        // Mock database insertions
+        $this->connectionMock
+            ->expects(self::exactly(2))
+            ->method('insert')
+            ->with('pages', self::isType('array'))
+            ->willReturn(1);
+
+        // Mock QueryBuilder for duplicate detection
+        $this->connectionMock
+            ->expects(self::any())
+            ->method('createQueryBuilder')
+            ->willReturn($this->queryBuilderMock);
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('select')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('from')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('where')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('setMaxResults')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('createNamedParameter')
+            ->willReturn(':param');
+
+        $resultStatementMock = $this->createMock(\Doctrine\DBAL\Result::class);
+        $resultStatementMock
+            ->expects(self::any())
+            ->method('fetchAssociative')
+            ->willReturn(false); // No existing records
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('executeQuery')
+            ->willReturn($resultStatementMock);
 
         $result = $this->subject->importFromFile($tempFile);
 
@@ -164,12 +217,15 @@ class ImportServiceTest extends TestCase
                 'total_records' => 2,
             ],
             'records' => [
-                'pages' => [1, 2],
+                'pages' => [
+                    '1' => ['title' => 'Page 1', 'uid' => 1],
+                    '2' => ['title' => 'Page 2', 'uid' => 2],
+                ],
             ],
             'relations' => [],
         ];
 
-        // Mock table existence check - called 3 times: once for simulation, twice for actual import
+        // Mock table existence check
         $this->connectionPoolMock
             ->expects(self::atLeast(2))
             ->method('getConnectionForTable')
@@ -186,6 +242,55 @@ class ImportServiceTest extends TestCase
             ->method('tablesExist')
             ->with(['pages'])
             ->willReturn(true);
+
+        // Mock database insertions
+        $this->connectionMock
+            ->expects(self::exactly(2))
+            ->method('insert')
+            ->with('pages', self::isType('array'))
+            ->willReturn(1);
+
+        // Mock QueryBuilder for duplicate detection
+        $this->connectionMock
+            ->expects(self::any())
+            ->method('createQueryBuilder')
+            ->willReturn($this->queryBuilderMock);
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('select')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('from')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('where')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('setMaxResults')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('createNamedParameter')
+            ->willReturn(':param');
+
+        $resultStatementMock = $this->createMock(\Doctrine\DBAL\Result::class);
+        $resultStatementMock
+            ->expects(self::any())
+            ->method('fetchAssociative')
+            ->willReturn(false);
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('executeQuery')
+            ->willReturn($resultStatementMock);
 
         $result = $this->subject->importRecords($exportData);
 
@@ -217,8 +322,13 @@ class ImportServiceTest extends TestCase
                 'total_records' => 3,
             ],
             'records' => [
-                'pages' => [1, 2],
-                'tt_content' => [101],
+                'pages' => [
+                    '1' => ['title' => 'Page 1', 'uid' => 1],
+                    '2' => ['title' => 'Page 2', 'uid' => 2],
+                ],
+                'tt_content' => [
+                    '101' => ['header' => 'Content 1', 'uid' => 101],
+                ],
             ],
             'relations' => [],
         ];
@@ -240,6 +350,55 @@ class ImportServiceTest extends TestCase
             ->method('tablesExist')
             ->with(['pages'])
             ->willReturn(true);
+
+        // Mock database insertions for pages only
+        $this->connectionMock
+            ->expects(self::exactly(2))
+            ->method('insert')
+            ->with('pages', self::isType('array'))
+            ->willReturn(1);
+
+        // Mock QueryBuilder for duplicate detection
+        $this->connectionMock
+            ->expects(self::any())
+            ->method('createQueryBuilder')
+            ->willReturn($this->queryBuilderMock);
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('select')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('from')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('where')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('setMaxResults')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('createNamedParameter')
+            ->willReturn(':param');
+
+        $resultStatementMock = $this->createMock(\Doctrine\DBAL\Result::class);
+        $resultStatementMock
+            ->expects(self::any())
+            ->method('fetchAssociative')
+            ->willReturn(false);
+
+        $this->queryBuilderMock
+            ->expects(self::any())
+            ->method('executeQuery')
+            ->willReturn($resultStatementMock);
 
         $result = $this->subject->importRecords($exportData, ['pages']);
 

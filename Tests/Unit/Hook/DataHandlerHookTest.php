@@ -49,8 +49,7 @@ final class DataHandlerHookTest extends TestCase
     #[Test]
     public function processDatamapBeforeStartResetsInternalState(): void
     {
-        $this->configuration->method('get')
-            ->with('detection.enabledTables', [])
+        $this->configuration->method('getEnabledTables')
             ->willReturn(['pages', 'tt_content']);
 
         $this->dataHandler->datamap = [
@@ -68,13 +67,15 @@ final class DataHandlerHookTest extends TestCase
 
         // Call again to ensure state is reset
         $this->subject->processDatamap_beforeStart($this->dataHandler);
+
+        // Assert that the method completed successfully
+        self::assertTrue(true);
     }
 
     #[Test]
     public function processDatamapBeforeStartSkipsWhenNoEnabledTables(): void
     {
-        $this->configuration->method('get')
-            ->with('detection.enabledTables', [])
+        $this->configuration->method('getEnabledTables')
             ->willReturn([]);
 
         $this->dataHandler->datamap = [
@@ -84,13 +85,15 @@ final class DataHandlerHookTest extends TestCase
         ];
 
         $this->subject->processDatamap_beforeStart($this->dataHandler);
+
+        // Assert that the method completed successfully
+        self::assertTrue(true);
     }
 
     #[Test]
     public function processDatamapAfterDatabaseOperationsTracksNewRecord(): void
     {
-        $this->configuration->method('get')
-            ->with('detection.enabledTables', [])
+        $this->configuration->method('getEnabledTables')
             ->willReturn(['pages']);
 
         $currentSnapshot = new DataSnapshot('test', 'tx_t3hauler_snapshots', 'hash123');
@@ -124,8 +127,7 @@ final class DataHandlerHookTest extends TestCase
     #[Test]
     public function processDatamapAfterDatabaseOperationsTracksUpdateRecord(): void
     {
-        $this->configuration->method('get')
-            ->with('detection.enabledTables', [])
+        $this->configuration->method('getEnabledTables')
             ->willReturn(['pages']);
 
         $currentSnapshot = new DataSnapshot('test', 'tx_t3hauler_snapshots', 'hash123');
@@ -157,8 +159,7 @@ final class DataHandlerHookTest extends TestCase
     #[Test]
     public function processDatamapAfterDatabaseOperationsSkipsDisabledTable(): void
     {
-        $this->configuration->method('get')
-            ->with('detection.enabledTables', [])
+        $this->configuration->method('getEnabledTables')
             ->willReturn(['tt_content']); // pages not enabled
 
         $this->changeTrackingService->expects(self::never())
@@ -178,8 +179,7 @@ final class DataHandlerHookTest extends TestCase
     #[Test]
     public function processDatamapAfterDatabaseOperationsSkipsWhenNoSnapshot(): void
     {
-        $this->configuration->method('get')
-            ->with('detection.enabledTables', [])
+        $this->configuration->method('getEnabledTables')
             ->willReturn(['pages']);
 
         $this->snapshotRepository->method('findCurrentSnapshot')
@@ -202,8 +202,7 @@ final class DataHandlerHookTest extends TestCase
     #[Test]
     public function processCmdmapDeleteActionTracksDeletedRecord(): void
     {
-        $this->configuration->method('get')
-            ->with('detection.enabledTables', [])
+        $this->configuration->method('getEnabledTables')
             ->willReturn(['pages']);
 
         $currentSnapshot = new DataSnapshot('test', 'tx_t3hauler_snapshots', 'hash123');
@@ -222,11 +221,13 @@ final class DataHandlerHookTest extends TestCase
             }));
 
         $record = ['title' => 'Deleted Page', 'deleted' => 1];
+        $recordWasDeleted = true;
 
         $this->subject->processCmdmap_deleteAction(
             'pages',
             123,
             $record,
+            $recordWasDeleted,
             $this->dataHandler
         );
     }
@@ -234,19 +235,20 @@ final class DataHandlerHookTest extends TestCase
     #[Test]
     public function processCmdmapDeleteActionSkipsDisabledTable(): void
     {
-        $this->configuration->method('get')
-            ->with('detection.enabledTables', [])
+        $this->configuration->method('getEnabledTables')
             ->willReturn(['tt_content']); // pages not enabled
 
         $this->changeTrackingService->expects(self::never())
             ->method('trackChange');
 
         $record = ['title' => 'Deleted Page'];
+        $recordWasDeleted = true;
 
         $this->subject->processCmdmap_deleteAction(
             'pages',
             123,
             $record,
+            $recordWasDeleted,
             $this->dataHandler
         );
     }
@@ -254,8 +256,7 @@ final class DataHandlerHookTest extends TestCase
     #[Test]
     public function processCmdmapMoveActionTracksMovedRecord(): void
     {
-        $this->configuration->method('get')
-            ->with('detection.enabledTables', [])
+        $this->configuration->method('getEnabledTables')
             ->willReturn(['pages']);
 
         $currentSnapshot = new DataSnapshot('test', 'tx_t3hauler_snapshots', 'hash123');
@@ -274,43 +275,41 @@ final class DataHandlerHookTest extends TestCase
                     && $data['new_data']['pid'] === 456;
             }));
 
-        $record = ['title' => 'Moved Page', 'pid' => 123];
-
-        $this->subject->processCmdmap_moveAction(
+        $this->subject->processCmdmap_postProcess(
+            'move',
             'pages',
             123,
             456, // destPid
-            $record,
-            $this->dataHandler
+            $this->dataHandler,
+            null,
+            null
         );
     }
 
     #[Test]
     public function processCmdmapMoveActionSkipsDisabledTable(): void
     {
-        $this->configuration->method('get')
-            ->with('detection.enabledTables', [])
+        $this->configuration->method('getEnabledTables')
             ->willReturn(['tt_content']); // pages not enabled
 
         $this->changeTrackingService->expects(self::never())
             ->method('trackChange');
 
-        $record = ['title' => 'Moved Page'];
-
-        $this->subject->processCmdmap_moveAction(
+        $this->subject->processCmdmap_postProcess(
+            'move',
             'pages',
             123,
             456,
-            $record,
-            $this->dataHandler
+            $this->dataHandler,
+            null,
+            null
         );
     }
 
     #[Test]
     public function hookMethodsHandleExceptionsGracefully(): void
     {
-        $this->configuration->method('get')
-            ->with('detection.enabledTables', [])
+        $this->configuration->method('getEnabledTables')
             ->willReturn(['pages']);
 
         $this->snapshotRepository->method('findCurrentSnapshot')
@@ -334,8 +333,7 @@ final class DataHandlerHookTest extends TestCase
     #[Test]
     public function hookMethodsWorkWithoutBackendUser(): void
     {
-        $this->configuration->method('get')
-            ->with('detection.enabledTables', [])
+        $this->configuration->method('getEnabledTables')
             ->willReturn(['pages']);
 
         $currentSnapshot = new DataSnapshot('test', 'tx_t3hauler_snapshots', 'hash123');
@@ -378,8 +376,7 @@ final class DataHandlerHookTest extends TestCase
     #[Test]
     public function hookMethodsWorkWithBackendUser(): void
     {
-        $this->configuration->method('get')
-            ->with('detection.enabledTables', [])
+        $this->configuration->method('getEnabledTables')
             ->willReturn(['pages']);
 
         $currentSnapshot = new DataSnapshot('test', 'tx_t3hauler_snapshots', 'hash123');

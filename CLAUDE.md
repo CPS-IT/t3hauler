@@ -157,3 +157,11 @@ The project uses GitHub Actions with comprehensive quality gates:
 - **Core Dependencies**: TYPO3 CMS Core v13.4+, Doctrine DBAL v4.0+
 - **Symfony Components**: Console v6.0+|v7.0+, YAML v6.0+|v7.0+
 - **Development Tools**: Comprehensive toolchain for code quality and testing
+
+## Workflow
+- **Unit Tests**: add unit tests for each component
+- **Functional Tests**: use functional tests where unit tests become too complex
+- **Test-driven development**: Implement tests before implementing the functionality where ever possible.
+- **Focus on component**: Make small changes to a single component, then test it. Proceed when all issues are fixed.
+- **TYPO3 Core API**: Prefer using the TYPO3 core API. Make sure to use the current version v13.
+- **Strong typing**: Use typehints for methods and properties. Prefer interfaces. Prefer objects to arrays or strings.

@@ -204,7 +204,7 @@ class DataHandlerHook implements SingletonInterface
                 $uid = (int)$id;
                 $destPid = (int)$value;
                 $previousData = $this->beforeUpdateData[$table][$uid] ?? null;
-                
+
                 $this->trackRecordChange(
                     $currentSnapshot->getUid(),
                     $table,
@@ -298,12 +298,12 @@ class DataHandlerHook implements SingletonInterface
     {
         // First try the YAML configuration
         $enabledTables = $this->configuration->getEnabledTables();
-        
+
         // If empty, try the extension configuration (used in tests)
         if (empty($enabledTables)) {
             $enabledTables = $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['t3hauler']['detection']['enabledTables'] ?? [];
         }
-        
+
         return $enabledTables;
     }
 

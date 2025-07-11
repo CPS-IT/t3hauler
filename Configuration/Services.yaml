@@ -74,3 +74,8 @@ services:
   Cpsit\T3hauler\Command\CreateSnapshotCommand:
     arguments:
       $changeDetectionService: '@Cpsit\T3hauler\Service\ChangeDetectionService'
+
+  # Utilites
+  Cpsit\T3hauler\Utility\HashUtility:
+    arguments:
+      $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'

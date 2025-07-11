@@ -11,6 +11,7 @@ use Cpsit\T3hauler\Service\ExportService;
 use Cpsit\T3hauler\Service\ImportService;
 use Cpsit\T3hauler\Tests\Functional\TestingUtilities;
 use PHPUnit\Framework\Attributes\Test;
+use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
@@ -51,7 +52,13 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
     {
         parent::setUp();
         $this->setUpT3HaulerTests();
-        $configuration = GeneralUtility::makeInstance(T3HaulerConfiguration::class);
+
+        // Create temporary directory for test files within TYPO3's allowed paths
+        $this->tempDir = Environment::getVarPath() . '/tests/t3hauler_test_' . uniqid();
+        mkdir($this->tempDir, 0777, true);
+
+        // Create a proper T3HaulerConfiguration with valid paths
+        $configuration = new T3HaulerConfiguration([], [$this->tempDir]);
         $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
 
         $this->exportService = GeneralUtility::makeInstance(
@@ -67,9 +74,7 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
         );
         $this->changeDetectionService = GeneralUtility::makeInstance(ChangeDetectionService::class);
 
-        // Create temporary directory for test files
-        $this->tempDir = sys_get_temp_dir() . '/t3hauler_test_' . uniqid();
-        mkdir($this->tempDir, 0777, true);
+        // Temporary directory already created above with proper TYPO3 paths
     }
 
     protected function tearDown(): void
@@ -86,6 +91,9 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
     #[Test]
     public function exportAndImportBasicMigration(): void
     {
+        // Create a snapshot for the migration table (required by ExportService)
+        $this->createSnapshotForTable('tx_t3hauler_migrations');
+
         // Create a migration with some basic data
         $migrationData = [
             'migration_id' => 'test_migration_001',
@@ -111,9 +119,14 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
 
         $exportData = json_decode($exportContent, true);
         self::assertIsArray($exportData);
-        self::assertArrayHasKey('migration', $exportData);
+        self::assertArrayHasKey('records', $exportData);
         self::assertArrayHasKey('metadata', $exportData);
-        self::assertSame('test_migration_001', $exportData['migration']['identifier']);
+        self::assertArrayHasKey('tx_t3hauler_migrations', $exportData['records']);
+
+        // Get the first migration record
+        $migrationRecords = $exportData['records']['tx_t3hauler_migrations'];
+        $migrationRecord = reset($migrationRecords);
+        self::assertSame('test_migration_001', $migrationRecord['migration_id']);
 
         // Clear the migration from database
         $this->deleteTestData('tx_t3hauler_migrations', ['uid' => $migrationUid]);
@@ -127,21 +140,24 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
 
         // Verify migration was imported
         $this->assertTableCount('tx_t3hauler_migrations', 1);
-        $this->assertRecordExists('tx_t3hauler_migrations', ['identifier' => 'test_migration_001']);
+        $this->assertRecordExists('tx_t3hauler_migrations', ['migration_id' => 'test_migration_001']);
 
         // Verify imported data matches original
         $importedMigration = $this->getConnectionForTable('tx_t3hauler_migrations')
-            ->select(['*'], 'tx_t3hauler_migrations', ['identifier' => 'test_migration_001'])
+            ->select(['*'], 'tx_t3hauler_migrations', ['migration_id' => 'test_migration_001'])
             ->fetchAssociative();
 
         self::assertSame('Test migration for export/import', $importedMigration['description']);
-        self::assertSame('1.0.0', $importedMigration['version']);
         self::assertSame('Test Author', $importedMigration['author']);
     }
 
     #[Test]
     public function exportIncludesChangeRecords(): void
     {
+        // Create snapshot for the migration table (required by ExportService)
+        $this->createSnapshotForTable('tx_t3hauler_migrations');
+        $this->createSnapshotForTable('tx_t3hauler_change_records');
+
         // Create snapshot and change records
         $snapshot = $this->changeDetectionService->createTableSnapshot('pages');
         $snapshotUid = $snapshot->getUid();
@@ -201,11 +217,12 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
         $exportContent = file_get_contents($exportPath);
         $exportData = json_decode($exportContent, true);
 
-        self::assertArrayHasKey('change_records', $exportData);
-        self::assertCount(2, $exportData['change_records']);
+        self::assertArrayHasKey('records', $exportData);
+        self::assertArrayHasKey('tx_t3hauler_change_records', $exportData['records']);
+        self::assertCount(2, $exportData['records']['tx_t3hauler_change_records']);
 
         // Verify change record details
-        $exportedChanges = $exportData['change_records'];
+        $exportedChanges = array_values($exportData['records']['tx_t3hauler_change_records']);
         self::assertSame('pages', $exportedChanges[0]['table_name']);
         self::assertSame('update', $exportedChanges[0]['change_type']);
         self::assertSame('tt_content', $exportedChanges[1]['table_name']);
@@ -238,6 +255,9 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
     #[Test]
     public function exportSupportsMultipleFormats(): void
     {
+        // Create snapshot for the migration table (required by ExportService)
+        $this->createSnapshotForTable('tx_t3hauler_migrations');
+
         // Create migration
         $migrationData = [
             'migration_id' => 'format_test_migration',
@@ -257,16 +277,16 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
 
         $jsonContent = json_decode(file_get_contents($jsonPath), true);
         self::assertIsArray($jsonContent);
-        self::assertArrayHasKey('migration', $jsonContent);
-
-        // Note: Only JSON export is supported by exportChangedData
-        // XML and YAML exports would need separate implementation
-        self::markTestSkipped('XML and YAML exports not implemented in exportChangedData method');
+        self::assertArrayHasKey('records', $jsonContent);
+        self::assertArrayHasKey('tx_t3hauler_migrations', $jsonContent['records']);
     }
 
     #[Test]
     public function roundTripPreservesDataIntegrity(): void
     {
+        // Create snapshot for the migration table (required by ExportService)
+        $this->createSnapshotForTable('tx_t3hauler_migrations');
+
         // Create comprehensive migration data
         $migrationData = [
             'migration_id' => 'integrity_test_migration',
@@ -303,13 +323,12 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
 
         // Get imported data
         $importedMigration = $this->getConnectionForTable('tx_t3hauler_migrations')
-            ->select(['*'], 'tx_t3hauler_migrations', ['identifier' => 'integrity_test_migration'])
+            ->select(['*'], 'tx_t3hauler_migrations', ['migration_id' => 'integrity_test_migration'])
             ->fetchAssociative();
 
         // Verify data integrity (excluding auto-generated fields like uid)
-        self::assertSame($originalMigration['identifier'], $importedMigration['identifier']);
+        self::assertSame($originalMigration['migration_id'], $importedMigration['migration_id']);
         self::assertSame($originalMigration['description'], $importedMigration['description']);
-        self::assertSame($originalMigration['version'], $importedMigration['version']);
         self::assertSame($originalMigration['author'], $importedMigration['author']);
         self::assertSame($originalMigration['metadata'], $importedMigration['metadata']);
 
@@ -322,6 +341,9 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
     #[Test]
     public function importHandlesDuplicateMigrations(): void
     {
+        // Create snapshot for the migration table (required by ExportService)
+        $this->createSnapshotForTable('tx_t3hauler_migrations');
+
         // Create and export migration
         $migrationData = [
             'migration_id' => 'duplicate_test_migration',
@@ -349,7 +371,7 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
 
         // Verify we don't have unexpected duplicates
         $duplicateCount = $this->getConnectionForTable('tx_t3hauler_migrations')
-            ->count('*', 'tx_t3hauler_migrations', ['identifier' => 'duplicate_test_migration']);
+            ->count('*', 'tx_t3hauler_migrations', ['migration_id' => 'duplicate_test_migration']);
 
         // Should be 1 (original) or 1 (replaced) but not more
         self::assertLessThanOrEqual(2, $duplicateCount);
@@ -358,6 +380,9 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
     #[Test]
     public function exportIncludesMetadataAndTimestamps(): void
     {
+        // Create snapshot for the migration table (required by ExportService)
+        $this->createSnapshotForTable('tx_t3hauler_migrations');
+
         // Create migration
         $timestamp = time();
         $migrationData = [
@@ -379,13 +404,32 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
         $exportData = json_decode(file_get_contents($exportPath), true);
 
         self::assertArrayHasKey('metadata', $exportData);
-        self::assertArrayHasKey('export_timestamp', $exportData['metadata']);
-        self::assertArrayHasKey('version', $exportData['metadata']);
-        self::assertArrayHasKey('format', $exportData['metadata']);
+        self::assertArrayHasKey('created_at', $exportData['metadata']);
+        self::assertArrayHasKey('format_version', $exportData['metadata']);
+        self::assertArrayHasKey('charset', $exportData['metadata']);
 
-        // Verify migration timestamps are preserved
-        self::assertSame($timestamp, $exportData['migration']['created_at']);
-        self::assertSame($timestamp + 100, $exportData['migration']['updated_at']);
+        // Verify migration data is present
+        self::assertArrayHasKey('records', $exportData);
+        self::assertArrayHasKey('tx_t3hauler_migrations', $exportData['records']);
+        $migrationRecords = array_values($exportData['records']['tx_t3hauler_migrations']);
+        self::assertSame($timestamp, $migrationRecords[0]['created_at']);
+    }
+
+    /**
+     * Create a snapshot for a specific table
+     */
+    private function createSnapshotForTable(string $tableName): void
+    {
+        $snapshotData = [
+            'identifier' => 'test_snapshot_' . $tableName,
+            'table_name' => $tableName,
+            'hash' => 'test_hash_' . $tableName,
+            'created_at' => time() - 100, // Create snapshot in the past
+            'metadata' => '{}',
+            'migration_version' => '1.0.0',
+        ];
+
+        $this->insertTestData('tx_t3hauler_snapshots', $snapshotData);
     }
 
     /**

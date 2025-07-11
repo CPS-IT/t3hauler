@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Cpsit\T3hauler\Tests\Unit\Service;
 
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
+use Cpsit\T3hauler\Domain\Dto\ChangesSummary;
+use Cpsit\T3hauler\Domain\Dto\TableChanges;
+use Cpsit\T3hauler\Domain\Enumeration\TableStatus;
 use Cpsit\T3hauler\Domain\Model\ChangeRecord;
 use Cpsit\T3hauler\Domain\Model\DataSnapshot;
 use Cpsit\T3hauler\Domain\Repository\ChangeRecordRepository;
@@ -60,10 +63,12 @@ class ChangeDetectionServiceTest extends TestCase
 
         $result = $this->subject->detectTableChanges('pages');
 
-        self::assertSame('no_baseline', $result['status']);
-        self::assertTrue($result['changed']);
-        self::assertSame('current_hash', $result['current_hash']);
-        self::assertNull($result['baseline_hash']);
+        self::assertInstanceOf(TableChanges::class, $result);
+        self::assertSame(TableStatus::NO_BASELINE, $result->status);
+        self::assertTrue($result->hasChanges);
+        self::assertSame('current_hash', $result->currentHash);
+        self::assertNull($result->baselineHash);
+        self::assertSame('pages', $result->tableName);
     }
 
     #[Test]
@@ -79,10 +84,12 @@ class ChangeDetectionServiceTest extends TestCase
 
         $result = $this->subject->detectTableChanges('pages');
 
-        self::assertSame('unchanged', $result['status']);
-        self::assertFalse($result['changed']);
-        self::assertSame($currentHash, $result['current_hash']);
-        self::assertSame($currentHash, $result['baseline_hash']);
+        self::assertInstanceOf(TableChanges::class, $result);
+        self::assertSame(TableStatus::UNCHANGED, $result->status);
+        self::assertFalse($result->hasChanges);
+        self::assertSame($currentHash, $result->currentHash);
+        self::assertSame($currentHash, $result->baselineHash);
+        self::assertSame('pages', $result->tableName);
     }
 
     #[Test]
@@ -99,10 +106,12 @@ class ChangeDetectionServiceTest extends TestCase
 
         $result = $this->subject->detectTableChanges('pages');
 
-        self::assertSame('changed', $result['status']);
-        self::assertTrue($result['changed']);
-        self::assertSame($currentHash, $result['current_hash']);
-        self::assertSame($baselineHash, $result['baseline_hash']);
+        self::assertInstanceOf(TableChanges::class, $result);
+        self::assertSame(TableStatus::CHANGED, $result->status);
+        self::assertTrue($result->hasChanges);
+        self::assertSame($currentHash, $result->currentHash);
+        self::assertSame($baselineHash, $result->baselineHash);
+        self::assertSame('pages', $result->tableName);
     }
 
     #[Test]
@@ -168,11 +177,12 @@ class ChangeDetectionServiceTest extends TestCase
 
         $result = $this->subject->getChangesSummary();
 
-        self::assertSame(2, $result['total_tables']);
-        self::assertSame(['pages'], $result['changed_tables']);
-        self::assertSame(['tt_content'], $result['unchanged_tables']);
-        self::assertSame([], $result['no_baseline_tables']);
-        self::assertTrue($result['has_changes']);
+        self::assertInstanceOf(ChangesSummary::class, $result);
+        self::assertSame(2, $result->totalTables);
+        self::assertSame(['pages'], $result->changedTables);
+        self::assertSame(['tt_content'], $result->unchangedTables);
+        self::assertSame([], $result->noBaselineTables);
+        self::assertTrue($result->hasChanges);
     }
 
     #[Test]

@@ -58,7 +58,15 @@ class T3HaulerConfigurationTest extends TestCase
     {
         $result = $this->subject->getExcludedFields();
 
-        self::assertSame(['tstamp', 'crdate', 'cruser_id'], $result);
+        $expected = [
+            'tstamp', 'crdate', 'cruser_id', 'SYS_LASTCHANGED',
+            't3ver_oid', 't3ver_wsid', 't3ver_state', 't3ver_stage',
+            't3ver_count', 't3ver_tstamp', 't3ver_move_id',
+            'l10n_state', 'l10n_diffsource',
+            'perms_userid', 'perms_groupid', 'perms_user', 'perms_group', 'perms_everybody',
+            'editlock', 'fe_group', 'rowDescription',
+        ];
+        self::assertSame($expected, $result);
     }
 
     #[Test]
