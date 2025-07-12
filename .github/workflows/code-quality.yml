@@ -69,7 +69,9 @@ jobs:
         run: composer install --no-progress --prefer-dist
 
       - name: Run PHPStan
-        run: composer sca:php
+        run: |
+          .build/bin/phpstan diagnose
+          composer sca:php
 
   rector:
     name: Rector Code Migration
