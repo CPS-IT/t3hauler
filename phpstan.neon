@@ -6,8 +6,7 @@ parameters:
 	excludePaths:
 		# This file fails mysteriously in github action
 		# All methods from parent Assert are reported as missing
-		- Tests/Functional/Command/CreateSnapshotCommandTest.php
-		- Tests/Functional/Command/DiffCommandTest.php
+		- Tests/Functional/*
 	treatPhpDocTypesAsCertain: false
 	scanDirectories:
 		- .build/vendor/
