@@ -180,10 +180,10 @@ final class T3HaulerConfigurationTest extends TestCase
         // Call get multiple times to ensure configuration is loaded only once
         $this->subject->get('test1');
         $this->subject->get('test2');
-        $config = $this->subject->getAll();
-        $this->subject->getEnabledTables();
+        $this->subject->getAll();
+        $enabledTables = $this->subject->getEnabledTables();
 
-        self::assertNotEmpty($config);
+        self::assertNotEmpty($enabledTables);
     }
 
     #[Test]
