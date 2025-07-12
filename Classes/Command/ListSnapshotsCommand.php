@@ -4,13 +4,20 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Command;
 
+use Cpsit\T3hauler\Command\Option\DetailsOption;
+use Cpsit\T3hauler\Command\Option\DirectionOption;
+use Cpsit\T3hauler\Command\Option\FilterOption;
+use Cpsit\T3hauler\Command\Option\LimitOption;
+use Cpsit\T3hauler\Command\Option\OrderOption;
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Domain\Model\DataSnapshot;
 use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
+use DWenzel\T3extensionTools\Command\OptionAwareInterface;
+use DWenzel\T3extensionTools\Traits\Command\ConfigureTrait;
+use DWenzel\T3extensionTools\Traits\Command\OptionAwareTrait;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -23,8 +30,24 @@ use Symfony\Component\Console\Style\SymfonyStyle;
     aliases: ['haul:snap:list'],
     help: 'This command lists all snapshots stored in the database with their metadata and statistics.'
 )]
-class ListSnapshotsCommand extends Command
+class ListSnapshotsCommand extends Command implements OptionAwareInterface
 {
+    use OptionAwareTrait;
+    use ConfigureTrait;
+
+    public const string MESSAGE_DESCRIPTION_COMMAND = 'List all existing snapshots';
+    public const string MESSAGE_HELP_COMMAND = 'This command lists all snapshots stored in the database with their metadata and statistics.';
+
+    protected const array OPTIONS = [
+        LimitOption::class,
+        OrderOption::class,
+        DirectionOption::class,
+        FilterOption::class,
+        DetailsOption::class,
+    ];
+
+    protected static array $optionsToConfigure = self::OPTIONS;
+
     public function __construct(
         private readonly T3HaulerConfiguration $configuration,
         private readonly DataSnapshotRepository $snapshotRepository
@@ -32,56 +55,14 @@ class ListSnapshotsCommand extends Command
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this->addOption(
-            'limit',
-            'l',
-            InputOption::VALUE_OPTIONAL,
-            'Limit number of snapshots to show',
-            null
-        );
-
-        $this->addOption(
-            'order',
-            'o',
-            InputOption::VALUE_OPTIONAL,
-            'Order by (created_at, snapshot_id, hash)',
-            'created_at'
-        );
-
-        $this->addOption(
-            'direction',
-            'd',
-            InputOption::VALUE_OPTIONAL,
-            'Sort direction (asc, desc)',
-            'desc'
-        );
-
-        $this->addOption(
-            'filter',
-            null,
-            InputOption::VALUE_OPTIONAL,
-            'Filter snapshots by name pattern',
-            null
-        );
-
-        $this->addOption(
-            'details',
-            null,
-            InputOption::VALUE_NONE,
-            'Show detailed information including table breakdown'
-        );
-    }
-
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $limit = $input->getOption('limit') ? (int)$input->getOption('limit') : null;
-        $orderBy = $input->getOption('order');
-        $direction = $input->getOption('direction');
-        $filter = $input->getOption('filter');
-        $showDetails = $input->getOption('details');
+        $limit = $input->getOption(LimitOption::NAME) ? (int)$input->getOption(LimitOption::NAME) : null;
+        $orderBy = $input->getOption(OrderOption::NAME);
+        $direction = $input->getOption(DirectionOption::NAME);
+        $filter = $input->getOption(FilterOption::NAME);
+        $showDetails = $input->getOption(DetailsOption::NAME);
 
         try {
             $snapshots = $this->getSnapshots($orderBy, $direction, $limit, $filter);

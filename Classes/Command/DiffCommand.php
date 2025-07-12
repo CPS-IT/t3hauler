@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Command;
 
+use Cpsit\T3hauler\Command\Option\BaselineOption;
+use Cpsit\T3hauler\Command\Option\SummaryOption;
+use Cpsit\T3hauler\Command\Option\TableOption;
 use Cpsit\T3hauler\Domain\Enumeration\TableStatus;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
+use DWenzel\T3extensionTools\Command\OptionAwareInterface;
+use DWenzel\T3extensionTools\Traits\Command\ConfigureTrait;
+use DWenzel\T3extensionTools\Traits\Command\OptionAwareTrait;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -21,44 +26,37 @@ use Symfony\Component\Console\Style\SymfonyStyle;
     description: 'Show pending changes since last snapshot',
     aliases: ['haul:diff']
 )]
-class DiffCommand extends Command
+class DiffCommand extends Command implements OptionAwareInterface
 {
+    use OptionAwareTrait;
+    use ConfigureTrait;
+
+    public const string MESSAGE_DESCRIPTION_COMMAND = 'Show pending changes since last snapshot';
+    public const string MESSAGE_HELP_COMMAND = 'This command compares the current database state with the last snapshot to show what has changed.';
+
+    protected const array OPTIONS = [
+        BaselineOption::class,
+        SummaryOption::class,
+        TableOption::class,
+    ];
+
+    /**
+     * @var array|string[]
+     */
+    protected static array $optionsToConfigure = self::OPTIONS;
+
     public function __construct(
         private readonly ChangeDetectionService $changeDetectionService
     ) {
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this->setDescription('Show pending changes since last snapshot')
-            ->setHelp('This command compares the current database state with the last snapshot to show what has changed.')
-            ->addOption(
-                'baseline',
-                'b',
-                InputOption::VALUE_OPTIONAL,
-                'Specific baseline snapshot identifier to compare against'
-            )
-            ->addOption(
-                'summary',
-                's',
-                InputOption::VALUE_NONE,
-                'Show only a summary of changes'
-            )
-            ->addOption(
-                'table',
-                't',
-                InputOption::VALUE_OPTIONAL,
-                'Check changes for a specific table only'
-            );
-    }
-
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $baseline = $input->getOption('baseline');
-        $summaryOnly = $input->getOption('summary');
-        $specificTable = $input->getOption('table');
+        $baseline = $input->getOption(BaselineOption::NAME);
+        $summaryOnly = $input->getOption(SummaryOption::NAME);
+        $specificTable = $input->getOption(TableOption::NAME);
 
         $io->title('T3Hauler - Change Detection');
 

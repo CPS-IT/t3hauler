@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Command;
 
+use Cpsit\T3hauler\Command\Argument\KeepDaysArgument;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
+use DWenzel\T3extensionTools\Command\ArgumentAwareInterface;
+use DWenzel\T3extensionTools\Traits\Command\ArgumentAwareTrait;
+use DWenzel\T3extensionTools\Traits\Command\ConfigureTrait;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -20,30 +23,30 @@ use Symfony\Component\Console\Style\SymfonyStyle;
     description: 'Manage database snapshots',
     aliases: ['haul:snap:cleanup']
 )]
-class CleanupSnapshotsCommand extends Command
+class CleanupSnapshotsCommand extends Command implements ArgumentAwareInterface
 {
+    use ArgumentAwareTrait;
+    use ConfigureTrait;
+
+    public const string MESSAGE_DESCRIPTION_COMMAND = 'Cleanup database snapshots';
+    public const string MESSAGE_HELP_COMMAND = 'This command allows you manage baseline snapshots for change detection.';
+
+    protected const array ARGUMENTS = [
+        KeepDaysArgument::class,
+    ];
+
+    protected static array $argumentsToConfigure = self::ARGUMENTS;
+
     public function __construct(
         private readonly ChangeDetectionService $changeDetectionService
     ) {
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this->setDescription('Cleanup database snapshots')
-            ->setHelp('This command allows you manage baseline snapshots for change detection.')
-            ->addArgument(
-                name: 'keep-days',
-                mode: InputArgument::OPTIONAL,
-                description: 'Number of days to keep snapshots',
-                default: 1,
-            );
-    }
-
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $keepDays = $input->getArgument('keep-days');
+        $keepDays = $input->getArgument(KeepDaysArgument::NAME);
 
         $io->title('T3Hauler - Create Snapshot');
 

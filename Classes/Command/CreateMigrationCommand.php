@@ -4,12 +4,19 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Command;
 
+use Cpsit\T3hauler\Command\Argument\DescriptionArgument;
+use Cpsit\T3hauler\Command\Option\AuthorOption;
+use Cpsit\T3hauler\Command\Option\DryRunOption;
+use Cpsit\T3hauler\Command\Option\SiteOption;
 use Cpsit\T3hauler\Service\MigrationService;
+use DWenzel\T3extensionTools\Command\ArgumentAwareInterface;
+use DWenzel\T3extensionTools\Command\OptionAwareInterface;
+use DWenzel\T3extensionTools\Traits\Command\ArgumentAwareTrait;
+use DWenzel\T3extensionTools\Traits\Command\ConfigureTrait;
+use DWenzel\T3extensionTools\Traits\Command\OptionAwareTrait;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -23,51 +30,41 @@ use Symfony\Component\Console\Style\SymfonyStyle;
     description: 'Create migration from detected changes',
     aliases: ['haul:create']
 )]
-class CreateMigrationCommand extends Command
+class CreateMigrationCommand extends Command implements ArgumentAwareInterface, OptionAwareInterface
 {
+    use ArgumentAwareTrait;
+    use OptionAwareTrait;
+    use ConfigureTrait;
+
+    public const string MESSAGE_DESCRIPTION_COMMAND = 'Create migration from detected changes';
+    public const string MESSAGE_HELP_COMMAND = 'This command generates a migration file from the detected database changes.';
+
+    protected const array ARGUMENTS = [
+        DescriptionArgument::class,
+    ];
+
+    protected const array OPTIONS = [
+        AuthorOption::class,
+        SiteOption::class,
+        DryRunOption::class,
+    ];
+
+    protected static array $argumentsToConfigure = self::ARGUMENTS;
+    protected static array $optionsToConfigure = self::OPTIONS;
+
     public function __construct(
         private readonly MigrationService $migrationService
     ) {
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this->setDescription('Create migration from detected changes')
-            ->setHelp('This command generates a migration file from the detected database changes.')
-            ->addArgument(
-                'description',
-                InputArgument::REQUIRED,
-                'Description of the migration'
-            )
-            ->addOption(
-                'author',
-                'a',
-                InputOption::VALUE_OPTIONAL,
-                'Author of the migration',
-                'Developer'
-            )
-            ->addOption(
-                'site',
-                's',
-                InputOption::VALUE_OPTIONAL,
-                'Site identifier for multi-site setup'
-            )
-            ->addOption(
-                'dry-run',
-                'd',
-                InputOption::VALUE_NONE,
-                'Show what would be generated without creating files'
-            );
-    }
-
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $description = $input->getArgument('description');
-        $author = $input->getOption('author');
-        $site = $input->getOption('site');
-        $dryRun = $input->getOption('dry-run');
+        $description = $input->getArgument(DescriptionArgument::NAME);
+        $author = $input->getOption(AuthorOption::NAME);
+        $site = $input->getOption(SiteOption::NAME);
+        $dryRun = $input->getOption(DryRunOption::NAME);
 
         $io->title('T3Hauler - Create Migration');
 
