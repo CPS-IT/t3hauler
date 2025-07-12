@@ -59,4 +59,49 @@ final class TableStatusTest extends TestCase
             'no_baseline has changes' => [TableStatus::NO_BASELINE, true],
         ];
     }
+
+    #[Test]
+    public function allStatusesAreDefinedAndHaveDescriptions(): void
+    {
+        $allCases = TableStatus::cases();
+
+        self::assertCount(3, $allCases);
+
+        foreach ($allCases as $status) {
+            $description = $status->getDescription();
+            self::assertNotEmpty($description);
+        }
+    }
+
+    #[Test]
+    public function statusValuesAreUnique(): void
+    {
+        $allCases = TableStatus::cases();
+        $values = array_map(fn(TableStatus $status) => $status->value, $allCases);
+
+        self::assertCount(count($values), array_unique($values));
+    }
+
+    #[Test]
+    public function statusCanBeCreatedFromValue(): void
+    {
+        self::assertSame(TableStatus::CHANGED, TableStatus::from('changed'));
+        self::assertSame(TableStatus::UNCHANGED, TableStatus::from('unchanged'));
+        self::assertSame(TableStatus::NO_BASELINE, TableStatus::from('no_baseline'));
+    }
+
+    #[Test]
+    public function tryFromReturnsNullForInvalidValue(): void
+    {
+        self::assertNull(TableStatus::tryFrom('invalid_status'));
+        self::assertNull(TableStatus::tryFrom(''));
+        self::assertNull(TableStatus::tryFrom('CHANGED')); // Case sensitive
+    }
+
+    #[Test]
+    public function tryFromReturnsStatusForValidValue(): void
+    {
+        self::assertSame(TableStatus::CHANGED, TableStatus::tryFrom('changed'));
+        self::assertSame(TableStatus::UNCHANGED, TableStatus::tryFrom('unchanged'));
+    }
 }

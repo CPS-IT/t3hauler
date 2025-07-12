@@ -80,7 +80,6 @@ class ApplyMigrationCommand extends Command
         $validate = $input->getOption('validate');
         $dryRun = $input->getOption('dry-run');
         $force = $input->getOption('force');
-        $format = $input->getOption('format');
 
         $io->title('T3Hauler - Apply Migration');
 

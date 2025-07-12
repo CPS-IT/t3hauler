@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cpsit\T3hauler\Command;
 
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
+use Cpsit\T3hauler\Domain\Model\DataSnapshot;
 use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -33,14 +34,6 @@ class ListSnapshotsCommand extends Command
 
     protected function configure(): void
     {
-        $this->addOption(
-            'format',
-            'f',
-            InputOption::VALUE_OPTIONAL,
-            'Output format (table, json)',
-            'table'
-        );
-
         $this->addOption(
             'limit',
             'l',
@@ -84,7 +77,6 @@ class ListSnapshotsCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $format = $input->getOption('format');
         $limit = $input->getOption('limit') ? (int)$input->getOption('limit') : null;
         $orderBy = $input->getOption('order');
         $direction = $input->getOption('direction');
@@ -102,11 +94,8 @@ class ListSnapshotsCommand extends Command
 
             $io->title('T3Hauler Snapshots');
 
-            if ($showDetails) {
-                $this->displayDetailedSnapshots($io, $snapshots, $format);
-            } else {
-                $this->displaySnapshots($io, $snapshots, $format);
-            }
+            $displayMethod = $showDetails ? 'displayDetailedSnapshots' : 'displaySnapshotsAsTable';
+            $this->{$displayMethod}($io, $snapshots);
 
             $this->displaySummary($io, $snapshots);
 
@@ -159,25 +148,10 @@ class ListSnapshotsCommand extends Command
     }
 
     /**
-     * Display snapshots in the specified format
-     */
-    private function displaySnapshots(SymfonyStyle $io, array $snapshots, string $format): void
-    {
-        switch ($format) {
-            case 'json':
-                $snapshotData = array_map(fn($snapshot) => $snapshot->toArray(), $snapshots);
-                $io->text(json_encode($snapshotData, JSON_PRETTY_PRINT));
-                break;
-
-            case 'table':
-            default:
-                $this->displaySnapshotsAsTable($io, $snapshots);
-                break;
-        }
-    }
-
-    /**
      * Display snapshots as table
+     * @param SymfonyStyle $io
+     * @param DataSnapshot[] $snapshots
+     * @noinspection PhpUnusedPrivateMethodInspection
      */
     private function displaySnapshotsAsTable(SymfonyStyle $io, array $snapshots): void
     {
@@ -186,7 +160,6 @@ class ListSnapshotsCommand extends Command
         foreach ($snapshots as $snapshot) {
             $createdAt = $snapshot->getCreatedAt()->format('Y-m-d H:i:s');
             $tableData = $snapshot->getMetadataValue('table_data', []);
-            $tables = is_array($tableData) ? count($tableData) : 0;
             $totalRecords = $this->calculateTotalRecords($tableData);
             $size = $this->formatSize(strlen(json_encode($tableData)));
             $hash = substr($snapshot->getHash(), 0, 8) . '...';
@@ -194,7 +167,6 @@ class ListSnapshotsCommand extends Command
             $rows[] = [
                 $snapshot->getIdentifier(),
                 $createdAt,
-                $tables,
                 number_format($totalRecords),
                 $size,
                 $hash,
@@ -204,7 +176,6 @@ class ListSnapshotsCommand extends Command
         $io->table([
             'Snapshot ID',
             'Created',
-            'Tables',
             'Records',
             'Size',
             'Hash',
@@ -213,15 +184,10 @@ class ListSnapshotsCommand extends Command
 
     /**
      * Display detailed snapshots information
+     * @noinspection PhpUnusedPrivateMethodInspection
      */
-    private function displayDetailedSnapshots(SymfonyStyle $io, array $snapshots, string $format): void
+    private function displayDetailedSnapshots(SymfonyStyle $io, array $snapshots): void
     {
-        if ($format === 'json') {
-            $snapshotData = array_map(fn($snapshot) => $snapshot->toArray(), $snapshots);
-            $io->text(json_encode($snapshotData, JSON_PRETTY_PRINT));
-            return;
-        }
-
         foreach ($snapshots as $snapshot) {
             $io->section('Snapshot: ' . $snapshot->getIdentifier());
 

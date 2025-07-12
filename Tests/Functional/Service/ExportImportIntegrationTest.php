@@ -110,7 +110,7 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
         $exportPath = $this->tempDir . '/test_export.json';
         $result = $this->exportService->exportChangedData(['tx_t3hauler_migrations'], $exportPath);
 
-        self::assertNotEmpty($result);
+        self::assertTrue($result->isSuccess());
         self::assertFileExists($exportPath);
 
         // Verify export file content
@@ -211,7 +211,7 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
         $exportPath = $this->tempDir . '/migration_with_changes.json';
         $result = $this->exportService->exportChangedData(['tx_t3hauler_migrations', 'tx_t3hauler_change_records'], $exportPath);
 
-        self::assertNotEmpty($result);
+        self::assertTrue($result->isSuccess());
 
         // Verify export includes change records
         $exportContent = file_get_contents($exportPath);
@@ -272,7 +272,7 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
         // Test JSON export
         $jsonPath = $this->tempDir . '/test.json';
         $result = $this->exportService->exportChangedData(['tx_t3hauler_migrations'], $jsonPath);
-        self::assertNotEmpty($result);
+        self::assertTrue($result->isSuccess());
         self::assertFileExists($jsonPath);
 
         $jsonContent = json_decode(file_get_contents($jsonPath), true);
@@ -311,7 +311,7 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
         // Export
         $exportPath = $this->tempDir . '/integrity_test.json';
         $exportResult = $this->exportService->exportChangedData(['tx_t3hauler_migrations'], $exportPath);
-        self::assertNotEmpty($exportResult);
+        self::assertTrue($exportResult->isSuccess());
 
         // Clear original data
         $this->deleteTestData('tx_t3hauler_migrations', ['uid' => $migrationUid]);

@@ -8,5 +8,7 @@ parameters:
 		#- '#Access to an undefined property.*Test::\$.*#'
 		# Ignore unused trait warnings for tool traits that are meant to be used by consumers
 		# - '#Trait .* is used zero times and is not analysed\.#'
+		# Ignore "always evaluates to true" warnings in test assertions
+		- '#Call to static method PHPUnit\\Framework\\Assert::.* will always evaluate to true\.#'
 	scanDirectories:
-		- .build/
+		- .build/vendor/

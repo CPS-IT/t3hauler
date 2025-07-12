@@ -1,0 +1,195 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/CPS-IT/t3hauler/migration-schema.json",
+  "title": "T3Hauler Migration File Schema",
+  "description": "JSON Schema for T3Hauler migration export files",
+  "type": "object",
+  "required": ["metadata", "records", "relations"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "description": "Export metadata information",
+      "required": ["created_at", "created_by", "format_version", "charset"],
+      "properties": {
+        "created_at": {
+          "type": "integer",
+          "description": "Unix timestamp when the export was created",
+          "minimum": 0
+        },
+        "created_by": {
+          "type": "string",
+          "description": "System or user that created the export",
+          "minLength": 1
+        },
+        "format_version": {
+          "type": "string",
+          "description": "Version of the export format",
+          "pattern": "^\\d+\\.\\d+$"
+        },
+        "charset": {
+          "type": "string",
+          "description": "Character encoding used in the export",
+          "enum": ["utf-8", "iso-8859-1", "ascii"]
+        },
+        "page_id": {
+          "type": "integer",
+          "description": "Page ID context for the export",
+          "minimum": 0
+        },
+        "export_type": {
+          "type": "string",
+          "description": "Type of export performed",
+          "enum": ["changed_data", "full_export", "incremental", "selective"]
+        },
+        "exclude_disabled": {
+          "type": "boolean",
+          "description": "Whether disabled records were excluded from export"
+        },
+        "processed_at": {
+          "type": "integer",
+          "description": "Unix timestamp when the export was processed",
+          "minimum": 0
+        },
+        "total_records": {
+          "type": "integer",
+          "description": "Total number of records exported",
+          "minimum": 0
+        },
+        "exported_tables": {
+          "type": "array",
+          "description": "List of database tables included in the export",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "records": {
+      "type": "object",
+      "description": "Exported record data organized by table name",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+          "type": "object",
+          "description": "Records from a specific database table",
+          "patternProperties": {
+            "^(NEW[a-f0-9]+|\\d+)$": {
+              "type": "object",
+              "description": "Individual record data",
+              "required": ["uid"],
+              "properties": {
+                "uid": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^NEW[a-f0-9]+$",
+                      "description": "Temporary UID for new records"
+                    },
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Numeric UID for existing records"
+                    }
+                  ]
+                },
+                "pid": {
+                  "type": "integer",
+                  "description": "Parent page ID",
+                  "minimum": 0
+                },
+                "tstamp": {
+                  "type": "integer",
+                  "description": "Last modification timestamp",
+                  "minimum": 0
+                },
+                "crdate": {
+                  "type": "integer",
+                  "description": "Creation timestamp",
+                  "minimum": 0
+                },
+                "deleted": {
+                  "type": "integer",
+                  "description": "Deletion flag (0 or 1)",
+                  "enum": [0, 1]
+                },
+                "hidden": {
+                  "type": "integer",
+                  "description": "Hidden flag (0 or 1)",
+                  "enum": [0, 1]
+                },
+                "starttime": {
+                  "type": "integer",
+                  "description": "Publication start time",
+                  "minimum": 0
+                },
+                "endtime": {
+                  "type": "integer",
+                  "description": "Publication end time",
+                  "minimum": 0
+                },
+                "sorting": {
+                  "type": "integer",
+                  "description": "Sorting order",
+                  "minimum": 0
+                },
+                "sys_language_uid": {
+                  "type": "integer",
+                  "description": "System language UID",
+                  "minimum": -1
+                },
+                "l18n_parent": {
+                  "type": "integer",
+                  "description": "Localization parent record",
+                  "minimum": 0
+                },
+                "l10n_source": {
+                  "type": "integer",
+                  "description": "Localization source record",
+                  "minimum": 0
+                },
+                "CType": {
+                  "type": "string",
+                  "description": "Content type for tt_content records"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "relations": {
+      "type": "array",
+      "description": "Record relationships and references",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source_table": {
+            "type": "string",
+            "description": "Source table name"
+          },
+          "source_uid": {
+            "description": "Source record UID"
+          },
+          "target_table": {
+            "type": "string",
+            "description": "Target table name"
+          },
+          "target_uid": {
+            "description": "Target record UID"
+          },
+          "field_name": {
+            "type": "string",
+            "description": "Field name containing the relation"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}

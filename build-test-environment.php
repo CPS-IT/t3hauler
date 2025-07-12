@@ -8,10 +8,6 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/.build/vendor/autoload.php';
 
-use TYPO3\CMS\Core\Core\Bootstrap;
-use TYPO3\CMS\Core\Core\Environment;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-
 // Set up TYPO3 environment
 $_ENV['TYPO3_PATH_ROOT'] = __DIR__ . '/.build/Web';
 $_ENV['TYPO3_PATH_APP'] = __DIR__ . '/.build/Web';

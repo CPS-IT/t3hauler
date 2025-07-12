@@ -75,6 +75,9 @@ class DataSnapshotRepository
 
     /**
      * Find snapshots by migration version
+     * @param string $migrationVersion
+     * @return DataSnapshot[]
+     * @throws \Doctrine\DBAL\Exception
      */
     public function findByMigrationVersion(string $migrationVersion): array
     {

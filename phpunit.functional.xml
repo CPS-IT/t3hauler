@@ -40,9 +40,9 @@
 
     <coverage includeUncoveredFiles="true">
         <report>
-            <text outputFile="php://stdout" showOnlySummary="true"/>
-            <html outputDirectory=".build/log/coverage-functional" lowUpperBound="50" highLowerBound="80"/>
-            <clover outputFile=".build/log/coverage-functional/clover.xml"/>
+            <text outputFile="php://stdout" showUncoveredFiles="true" showOnlySummary="false"/>
+            <html outputDirectory=".build/log/coverage/functional/html" lowUpperBound="50" highLowerBound="80"/>
+            <clover outputFile=".build/log/coverage/functional/clover/clover.xml"/>
         </report>
     </coverage>
     <source>

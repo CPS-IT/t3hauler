@@ -352,4 +352,341 @@ class IntegrityServiceTest extends TestCase
         self::assertFalse($result['can_proceed']);
         self::assertNotEmpty($result['issues']);
     }
+
+    #[Test]
+    public function validatePreImportRequirementsHandlesExceptions(): void
+    {
+        $exportData = [
+            'records' => [
+                'pages' => [1],
+            ],
+        ];
+
+        $this->connectionPoolMock
+            ->expects(self::once())
+            ->method('getConnectionForTable')
+            ->willThrowException(new \Exception('Database error'));
+
+        $result = $this->subject->validatePreImportRequirements($exportData);
+
+        self::assertFalse($result['valid']);
+        self::assertFalse($result['can_proceed']);
+        self::assertStringContainsString('Pre-import validation failed', $result['message']);
+        self::assertNotEmpty($result['issues']);
+    }
+
+    #[Test]
+    public function checkExportConflictsHandlesExceptions(): void
+    {
+        $exportData = [
+            'records' => [
+                'pages' => [1, 2],
+            ],
+        ];
+        $baselineHash = 'baseline_hash_123';
+
+        $this->configurationMock
+            ->expects(self::once())
+            ->method('get')
+            ->willThrowException(new \Exception('Configuration error'));
+
+        $result = $this->subject->checkExportConflicts($exportData, $baselineHash);
+
+        self::assertTrue($result['has_conflicts']);
+        self::assertStringContainsString('Conflict detection failed', $result['message']);
+        self::assertArrayHasKey('exception', $result);
+        self::assertEmpty($result['conflicts']);
+    }
+
+    #[Test]
+    public function validateMigrationIntegrityWithMatchingHashSucceeds(): void
+    {
+        $affectedTables = ['pages'];
+        $excludeFields = ['tstamp'];
+
+        // Mock configuration
+        $this->configurationMock
+            ->method('get')
+            ->with('detection.excludeFields', [])
+            ->willReturn($excludeFields);
+
+        // Mock table existence
+        $this->connectionPoolMock
+            ->method('getConnectionForTable')
+            ->willReturn($this->connectionMock);
+
+        $this->connectionMock
+            ->method('createSchemaManager')
+            ->willReturn($this->schemaManagerMock);
+
+        $this->schemaManagerMock
+            ->method('tablesExist')
+            ->willReturn(true);
+
+        // Mock hash calculation to return consistent hash
+        $this->hashUtilityMock
+            ->method('calculateTableHash')
+            ->with('pages', $excludeFields)
+            ->willReturn('table_hash_pages');
+
+        // The combined hash will be sha256 of serialize(['pages' => 'table_hash_pages'])
+        $expectedCombinedHash = hash('sha256', serialize(['pages' => 'table_hash_pages']));
+
+        $result = $this->subject->validateMigrationIntegrity($expectedCombinedHash, $affectedTables);
+
+        self::assertTrue($result['valid']);
+        self::assertEquals('Migration integrity validated successfully', $result['message']);
+        self::assertEquals($expectedCombinedHash, $result['hash']);
+        self::assertEquals($affectedTables, $result['affected_tables']);
+    }
+
+    #[Test]
+    public function checkExportConflictsWithMatchingHashSucceeds(): void
+    {
+        $exportData = [
+            'records' => [
+                'pages' => [1, 2],
+            ],
+        ];
+        $excludeFields = ['tstamp'];
+
+        // Mock configuration
+        $this->configurationMock
+            ->method('get')
+            ->with('detection.excludeFields', [])
+            ->willReturn($excludeFields);
+
+        // Mock table existence
+        $this->connectionPoolMock
+            ->method('getConnectionForTable')
+            ->willReturn($this->connectionMock);
+
+        $this->connectionMock
+            ->method('createSchemaManager')
+            ->willReturn($this->schemaManagerMock);
+
+        $this->schemaManagerMock
+            ->method('tablesExist')
+            ->willReturn(true);
+
+        // Mock hash calculation to return consistent hash
+        $this->hashUtilityMock
+            ->method('calculateTableHash')
+            ->with('pages', $excludeFields)
+            ->willReturn('table_hash_pages');
+
+        // The combined hash will be sha256 of serialize(['pages' => 'table_hash_pages'])
+        $baselineHash = hash('sha256', serialize(['pages' => 'table_hash_pages']));
+
+        $result = $this->subject->checkExportConflicts($exportData, $baselineHash);
+
+        self::assertFalse($result['has_conflicts']);
+        self::assertEquals('No conflicts detected', $result['message']);
+        self::assertEquals($baselineHash, $result['baseline_hash']);
+        self::assertEquals($baselineHash, $result['current_hash']);
+        self::assertEmpty($result['conflicts']);
+    }
+
+    #[Test]
+    public function checkExportConflictsDetectsRecordConflicts(): void
+    {
+        $exportData = [
+            'records' => [
+                'pages' => [1, 2],
+            ],
+        ];
+        $baselineHash = 'different_baseline_hash';
+
+        // Mock configuration
+        $this->configurationMock
+            ->method('get')
+            ->with('detection.excludeFields', [])
+            ->willReturn([]);
+
+        // Mock table existence
+        $this->connectionPoolMock
+            ->method('getConnectionForTable')
+            ->willReturn($this->connectionMock);
+
+        $this->connectionMock
+            ->method('createSchemaManager')
+            ->willReturn($this->schemaManagerMock);
+
+        $this->connectionMock
+            ->method('createQueryBuilder')
+            ->willReturn($this->queryBuilderMock);
+
+        $this->schemaManagerMock
+            ->method('tablesExist')
+            ->willReturn(true);
+
+        // Mock hash calculation to return different hash
+        $this->hashUtilityMock
+            ->method('calculateTableHash')
+            ->willReturn('current_table_hash');
+
+        // Mock query builder for record existence check
+        $resultMock = $this->createMock(\Doctrine\DBAL\Result::class);
+        $resultMock
+            ->method('fetchAssociative')
+            ->willReturnOnConsecutiveCalls(
+                ['uid' => 1, 'title' => 'Page 1'], // First record exists
+                false // Second record doesn't exist
+            );
+
+        $this->queryBuilderMock
+            ->method('select')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->method('from')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->method('where')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->method('createNamedParameter')
+            ->willReturn(':uid');
+
+        $this->queryBuilderMock
+            ->method('executeQuery')
+            ->willReturn($resultMock);
+
+        $result = $this->subject->checkExportConflicts($exportData, $baselineHash);
+
+        self::assertTrue($result['has_conflicts']);
+        self::assertStringContainsString('Conflicts detected', $result['message']);
+        self::assertNotEmpty($result['conflicts']);
+        self::assertNotEmpty($result['resolution_suggestions']);
+    }
+
+    #[Test]
+    public function createIntegrityCheckpointHandlesMissingTables(): void
+    {
+        $tables = ['pages', 'nonexistent_table'];
+        $checkpointId = 'test_checkpoint_missing_tables';
+
+        $this->configurationMock
+            ->method('get')
+            ->with('detection.excludeFields', [])
+            ->willReturn([]);
+
+        // Mock table existence - pages exists, nonexistent_table doesn't
+        $this->connectionPoolMock
+            ->method('getConnectionForTable')
+            ->willReturn($this->connectionMock);
+
+        $this->connectionMock
+            ->method('createSchemaManager')
+            ->willReturn($this->schemaManagerMock);
+
+        $this->connectionMock
+            ->method('createQueryBuilder')
+            ->willReturn($this->queryBuilderMock);
+
+        $this->schemaManagerMock
+            ->method('tablesExist')
+            ->willReturnOnConsecutiveCalls(true, false);
+
+        $this->hashUtilityMock
+            ->method('calculateTableHash')
+            ->willReturn('pages_hash');
+
+        // Mock record count query for pages table only
+        $resultMock = $this->createMock(\Doctrine\DBAL\Result::class);
+        $resultMock
+            ->method('fetchOne')
+            ->willReturn(5);
+
+        $this->queryBuilderMock
+            ->method('count')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->method('from')
+            ->willReturnSelf();
+
+        $this->queryBuilderMock
+            ->method('executeQuery')
+            ->willReturn($resultMock);
+
+        $result = $this->subject->createIntegrityCheckpoint($tables, $checkpointId);
+
+        self::assertTrue($result['success']);
+        self::assertEquals(1, $result['tables_included']); // Only pages table included
+        self::assertArrayHasKey('pages', $result['checkpoint_data']['tables']);
+        self::assertArrayNotHasKey('nonexistent_table', $result['checkpoint_data']['tables']);
+    }
+
+    #[Test]
+    public function validatePreImportRequirementsWithDiskSpaceWarning(): void
+    {
+        $exportData = [
+            'records' => [
+                'pages' => [1],
+            ],
+        ];
+
+        // Mock table existence
+        $this->connectionPoolMock
+            ->method('getConnectionForTable')
+            ->willReturn($this->connectionMock);
+
+        $this->connectionMock
+            ->method('createSchemaManager')
+            ->willReturn($this->schemaManagerMock);
+
+        $this->schemaManagerMock
+            ->method('tablesExist')
+            ->willReturn(true);
+
+        $result = $this->subject->validatePreImportRequirements($exportData);
+
+        // Should pass validation but may have warnings about disk space
+        self::assertTrue($result['valid']);
+        self::assertTrue($result['can_proceed']);
+        self::assertEmpty($result['issues']);
+        // Disk space warning may or may not be present depending on actual disk space
+    }
+
+    #[Test]
+    public function validatePreImportRequirementsWithComplexRelations(): void
+    {
+        $exportData = [
+            'records' => [
+                'pages' => [1],
+                'tt_content' => [101],
+            ],
+            'relations' => [
+                'tt_content:101' => [
+                    ['field' => 'pid', 'to_table' => 'pages', 'to_uid' => 1],
+                    ['field' => 'image', 'to_table' => 'sys_file', 'to_uid' => 201],
+                ],
+                'pages:1' => [
+                    ['field' => 'parent', 'to_table' => 'pages', 'to_uid' => 0],
+                ],
+            ],
+        ];
+
+        // Mock all tables exist
+        $this->connectionPoolMock
+            ->method('getConnectionForTable')
+            ->willReturn($this->connectionMock);
+
+        $this->connectionMock
+            ->method('createSchemaManager')
+            ->willReturn($this->schemaManagerMock);
+
+        $this->schemaManagerMock
+            ->method('tablesExist')
+            ->willReturn(true);
+
+        $result = $this->subject->validatePreImportRequirements($exportData);
+
+        self::assertTrue($result['valid']);
+        self::assertTrue($result['can_proceed']);
+        self::assertEmpty($result['issues']);
+    }
 }
