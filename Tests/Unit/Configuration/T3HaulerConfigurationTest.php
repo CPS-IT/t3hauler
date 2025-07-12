@@ -180,11 +180,10 @@ final class T3HaulerConfigurationTest extends TestCase
         // Call get multiple times to ensure configuration is loaded only once
         $this->subject->get('test1');
         $this->subject->get('test2');
-        $this->subject->getAll();
+        $config = $this->subject->getAll();
         $this->subject->getEnabledTables();
 
-        // If this doesn't throw an error, the configuration loading is working correctly
-        self::assertTrue(true);
+        self::assertNotEmpty($config);
     }
 
     #[Test]
@@ -287,7 +286,6 @@ final class T3HaulerConfigurationTest extends TestCase
 
         // Verify excluded fields contains expected defaults
         $excludedFields = $config->getExcludedFields();
-        self::assertIsArray($excludedFields);
         self::assertGreaterThan(15, count($excludedFields));
     }
 

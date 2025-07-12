@@ -139,7 +139,6 @@ final class ExportServiceTest extends FunctionalTestCase
 
             if ($result->isSuccess()) {
                 self::assertGreaterThan(0, $result->recordCount);
-                self::assertIsArray($result->exportedTables);
 
                 // Verify the export file content
                 $exportContent = file_get_contents($outputPath);
@@ -296,10 +295,6 @@ final class ExportServiceTest extends FunctionalTestCase
             $result = $this->subject->exportChangedData($changedTables, $outputPath);
 
             // The test should either succeed or fail gracefully
-            self::assertIsBool($result->isSuccess());
-            self::assertIsString($result->message);
-            self::assertIsInt($result->recordCount);
-
             if ($result->isSuccess()) {
                 // Verify the export file contains expected structure
                 $exportContent = file_get_contents($outputPath);
@@ -329,13 +324,8 @@ final class ExportServiceTest extends FunctionalTestCase
             $result = $this->subject->exportChangedData($changedTables, $outputPath);
 
             // The operation should complete (either with success or graceful failure)
-            self::assertIsBool($result->isSuccess());
-            self::assertIsString($result->message);
-            self::assertIsInt($result->recordCount);
-
             if ($result->isSuccess()) {
                 // Verify metadata is properly generated
-                self::assertIsArray($result->metadata);
                 self::assertGreaterThan(0, $result->fileSize);
             }
 

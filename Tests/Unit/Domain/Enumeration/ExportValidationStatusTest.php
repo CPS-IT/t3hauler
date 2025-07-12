@@ -99,7 +99,6 @@ final class ExportValidationStatusTest extends TestCase
 
         foreach ($allCases as $status) {
             $description = $status->getDescription();
-            self::assertIsString($description);
             self::assertNotEmpty($description);
         }
     }
