@@ -141,6 +141,14 @@ class HashUtility
     }
 
     /**
+     * Generate hash for an array of data
+     */
+    public static function hashArray(array $data, string $algorithm = 'sha256'): string
+    {
+        return hash($algorithm, serialize($data));
+    }
+
+    /**
      * Validate hash algorithm
      */
     public function isValidAlgorithm(string $algorithm): bool
@@ -160,7 +168,7 @@ class HashUtility
 
             if ($primaryKey !== null) {
                 $columns = $primaryKey->getColumns();
-                return $columns[0] ?? null;
+                return $columns[0];
             }
         } catch (\Throwable $e) {
             // Fallback to 'uid' which is standard in TYPO3

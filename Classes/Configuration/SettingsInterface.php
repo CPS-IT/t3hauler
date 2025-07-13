@@ -29,4 +29,10 @@ interface SettingsInterface
     public const string NAME = 'T3hauler';
     public const string KEY = 't3hauler';
     public const string VENDOR_NAME = 'Cpsit';
+
+    // Configuration keys
+    public const string DETECTION_EXCLUDE_FIELDS = 'detection.excludeFields';
+    public const string DETECTION_ENABLED_TABLES = 'detection.enabledTables';
+    public const string EXPORT_FORMAT = 'export.format';
+    public const string EXPORT_CHARSET = 'export.charset';
 }

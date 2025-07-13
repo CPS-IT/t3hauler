@@ -37,7 +37,7 @@ class MigrationService
         // Check for changes
         $changesSummary = $this->changeDetectionService->getChangesSummary();
 
-        if (!$changesSummary['has_changes']) {
+        if (!$changesSummary->hasChanges) {
             return [
                 'success' => false,
                 'message' => 'No changes detected since last snapshot. Nothing to migrate.',
@@ -90,12 +90,12 @@ class MigrationService
 
             // Export changed data to JSON format
             $exportResult = $this->exportService->exportChangedData(
-                $changesSummary['changed_tables'],
+                $changesSummary->changedTables,
                 $exportFilePath
             );
 
-            if (!$exportResult['success']) {
-                throw new \RuntimeException('Failed to export data: ' . $exportResult['message'], 1909123459);
+            if (!$exportResult->isSuccess()) {
+                throw new \RuntimeException('Failed to export data: ' . $exportResult->message, 1909123459);
             }
 
             // Create migration record
@@ -111,9 +111,9 @@ class MigrationService
             $migration->addMetadata('site', $site);
             $migration->addMetadata('export_file', $exportFileName);
             $migration->addMetadata('export_format', 'json');
-            $migration->addMetadata('changed_tables', $changesSummary['changed_tables']);
-            $migration->addMetadata('export_records', $exportResult['record_count'] ?? 0);
-            $migration->addMetadata('file_size', $exportResult['file_size'] ?? 0);
+            $migration->addMetadata('changed_tables', $changesSummary->changedTables);
+            $migration->addMetadata('export_records', $exportResult->recordCount);
+            $migration->addMetadata('file_size', $exportResult->fileSize ?? 0);
 
             // Save migration to database
             $savedMigration = $this->migrationRepository->save($migration);

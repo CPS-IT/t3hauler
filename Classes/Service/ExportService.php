@@ -4,45 +4,68 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Service;
 
+use Cpsit\T3hauler\Configuration\SettingsInterface;
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
+use Cpsit\T3hauler\Domain\Dto\ExportResult;
+use Cpsit\T3hauler\Domain\Dto\ExportValidationResult;
+use Cpsit\T3hauler\Domain\Enumeration\ExportStatus;
+use Cpsit\T3hauler\Domain\Enumeration\ExportValidationStatus;
 use Cpsit\T3hauler\Domain\Model\DataSnapshot;
 use Cpsit\T3hauler\Domain\Model\Export;
 use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
 use Doctrine\DBAL\Exception;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
 
 /**
  * Service for exporting changed data to JSON format
  *
  * Creates exports in JSON format with relation dependency resolution
  */
-class ExportService
+readonly class ExportService
 {
+    // Message constants
+    public const string MESSAGE_NO_TABLES = 'No changed tables to export';
+    public const string MESSAGE_NO_RECORDS = 'No records found to export from changed tables';
+    public const string MESSAGE_EXPORT_NO_DATA = 'Export generated no data';
+    public const string MESSAGE_DIRECTORY_CREATION_FAILED = 'Failed to create output directory';
+    public const string MESSAGE_FILE_WRITE_FAILED = 'Failed to write export file';
+    public const string MESSAGE_EXPORT_FAILED = 'Export failed';
+    public const string MESSAGE_EXPORT_SUCCESS = 'Successfully exported %d records to %s';
+    public const string MESSAGE_FILE_NOT_FOUND = 'Export file not found';
+    public const string MESSAGE_FILE_EMPTY = 'Export file is empty';
+    public const string MESSAGE_INVALID_STRUCTURE = 'Export file does not have valid structure';
+    public const string MESSAGE_PARSE_FAILED = 'Failed to parse export file';
+    public const string MESSAGE_FILE_VALID = 'Export file is valid';
+
+    // Default values
+    public const string DEFAULT_CHARSET = 'utf-8';
+    public const string DEFAULT_FORMAT = 'json';
+
     public function __construct(
-        private readonly T3HaulerConfiguration $configuration, // Will be used for export configuration in future versions
-        private readonly ConnectionPool $connectionPool,
-        private readonly DataSnapshotRepository $dataSnapshotRepository,
+        private T3HaulerConfiguration $configuration,
+        private ConnectionPool $connectionPool,
+        private DataSnapshotRepository $dataSnapshotRepository,
     ) {}
 
     /**
      * Export changed data to JSON format
      */
-    public function exportChangedData(array $changedTables, string $outputPath): array
+    public function exportChangedData(array $changedTables, string $outputPath): ExportResult
     {
         try {
             if (empty($changedTables)) {
-                return [
-                    'success' => false,
-                    'message' => 'No changed tables to export',
-                    'record_count' => 0,
-                ];
+                return ExportResult::failure(
+                    ExportStatus::NO_TABLES,
+                    self::MESSAGE_NO_TABLES
+                );
             }
 
             // Create export instance
             $export = new Export();
-            $export->init(0, 'changed_data');
-            $export->setCharset('utf-8');
+            $export->setCharset(self::DEFAULT_CHARSET);
             $export->setExcludeDisabledRecords(false);
 
             $totalRecords = 0;
@@ -56,61 +79,55 @@ class ExportService
             }
 
             if ($totalRecords === 0) {
-                return [
-                    'success' => false,
-                    'message' => 'No records found to export from changed tables',
-                    'record_count' => 0,
-                ];
+                return ExportResult::failure(
+                    ExportStatus::NO_RECORDS,
+                    self::MESSAGE_NO_RECORDS
+                );
             }
 
             // Process export and save to file
             $exportData = $export->process();
 
             if (empty($exportData)) {
-                return [
-                    'success' => false,
-                    'message' => 'Export generated no data',
-                    'record_count' => 0,
-                ];
+                return ExportResult::failure(
+                    ExportStatus::EXPORT_FAILED,
+                    self::MESSAGE_EXPORT_NO_DATA
+                );
             }
 
             // Save to file
             $outputDir = dirname($outputPath);
             if (!is_dir($outputDir) && !mkdir($outputDir, 0755, true)) {
-                return [
-                    'success' => false,
-                    'message' => 'Failed to create output directory: ' . $outputDir,
-                    'record_count' => 0,
-                ];
+                return ExportResult::failure(
+                    ExportStatus::DIRECTORY_CREATION_FAILED,
+                    self::MESSAGE_DIRECTORY_CREATION_FAILED . ': ' . $outputDir
+                );
             }
 
             if (file_put_contents($outputPath, $exportData) === false) {
-                return [
-                    'success' => false,
-                    'message' => 'Failed to write export file: ' . $outputPath,
-                    'record_count' => 0,
-                ];
+                return ExportResult::failure(
+                    ExportStatus::FILE_WRITE_FAILED,
+                    self::MESSAGE_FILE_WRITE_FAILED . ': ' . $outputPath
+                );
             }
 
-            return [
-                'success' => true,
-                'message' => 'Successfully exported ' . $totalRecords . ' records to ' . $outputPath,
-                'record_count' => $totalRecords,
-                'exported_tables' => $exportedTables,
-                'file_path' => $outputPath,
-                'file_size' => filesize($outputPath),
-                'format' => 'json',
-                'metadata' => $export->getMetadata(),
-            ];
+            return ExportResult::success(
+                message: sprintf(self::MESSAGE_EXPORT_SUCCESS, $totalRecords, $outputPath),
+                recordCount: $totalRecords,
+                exportedTables: $exportedTables,
+                filePath: $outputPath,
+                fileSize: filesize($outputPath) ?: 0,
+                format: self::DEFAULT_FORMAT,
+                metadata: $export->getMetadata()
+            );
 
         } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Export failed: ' . $e->getMessage(),
-                'record_count' => 0,
-                'exception' => get_class($e),
-                'exception_code' => $e->getCode(),
-            ];
+            return ExportResult::failure(
+                ExportStatus::EXPORT_FAILED,
+                self::MESSAGE_EXPORT_FAILED . ': ' . $e->getMessage(),
+                get_class($e),
+                $e->getCode()
+            );
         }
     }
 
@@ -122,12 +139,17 @@ class ExportService
 
         $connection = $this->connectionPool->getConnectionForTable($tableName);
         $queryBuilder = $connection->createQueryBuilder();
-
+        if ($this->configuration->get('t3hauler.export.includeHidden', false)) {
+            $queryBuilder->getRestrictions()->removeByType(HiddenRestriction::class);
+        }
+        if ($this->configuration->get('t3hauler.export.includeDeleted', false)) {
+            $queryBuilder->getRestrictions()->removeByType(DeletedRestriction::class);
+        }
         try {
             $recordCount = 0;
 
             // Get configuration for field filtering
-            $excludeFields = $this->configuration->get('detection.excludeFields', []);
+            $excludeFields = $this->configuration->get(SettingsInterface::DETECTION_EXCLUDE_FIELDS, []);
             $allowedFields = $this->getAllowedFields($tableName, $excludeFields);
 
             // Always include crdate if available for new record detection
@@ -154,6 +176,7 @@ class ExportService
                 )
             );
 
+            $sql = $result->getSQL();
             $queryResult = $result->executeQuery();
 
             while ($row = $queryResult->fetchAssociative()) {
@@ -293,47 +316,46 @@ class ExportService
     /**
      * Validate export file
      */
-    public function validateExportFile(string $filePath): array
+    public function validateExportFile(string $filePath): ExportValidationResult
     {
         if (!file_exists($filePath)) {
-            return [
-                'valid' => false,
-                'message' => 'Export file not found: ' . $filePath,
-            ];
+            return ExportValidationResult::invalid(
+                ExportValidationStatus::FILE_NOT_FOUND,
+                self::MESSAGE_FILE_NOT_FOUND . ': ' . $filePath
+            );
         }
 
         $content = file_get_contents($filePath);
         if (empty($content)) {
-            return [
-                'valid' => false,
-                'message' => 'Export file is empty',
-            ];
+            return ExportValidationResult::invalid(
+                ExportValidationStatus::FILE_EMPTY,
+                self::MESSAGE_FILE_EMPTY
+            );
         }
 
         try {
             $data = json_decode($content, true);
 
             if (!$data || !isset($data['metadata'], $data['records'])) {
-                return [
-                    'valid' => false,
-                    'message' => 'Export file does not have valid structure',
-                ];
+                return ExportValidationResult::invalid(
+                    ExportValidationStatus::INVALID_STRUCTURE,
+                    self::MESSAGE_INVALID_STRUCTURE
+                );
             }
 
-            return [
-                'valid' => true,
-                'message' => 'Export file is valid',
-                'file_size' => filesize($filePath),
-                'record_count' => $data['metadata']['total_records'] ?? 0,
-                'format' => 'json',
-                'metadata' => $data['metadata'],
-            ];
+            return ExportValidationResult::valid(
+                message: self::MESSAGE_FILE_VALID,
+                fileSize: filesize($filePath) ?: 0,
+                recordCount: $data['metadata']['total_records'] ?? 0,
+                format: self::DEFAULT_FORMAT,
+                metadata: $data['metadata']
+            );
 
         } catch (\Exception $e) {
-            return [
-                'valid' => false,
-                'message' => 'Failed to parse export file: ' . $e->getMessage(),
-            ];
+            return ExportValidationResult::invalid(
+                ExportValidationStatus::PARSE_ERROR,
+                self::MESSAGE_PARSE_FAILED . ': ' . $e->getMessage()
+            );
         }
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cpsit\T3hauler\Tests\Unit\Service;
 
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
+use Cpsit\T3hauler\Domain\Dto\ChangesSummary;
 use Cpsit\T3hauler\Domain\Model\Migration;
 use Cpsit\T3hauler\Domain\Repository\MigrationRepository;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
@@ -50,9 +51,11 @@ class MigrationServiceTest extends TestCase
     #[Test]
     public function createMigrationReturnsFailureWhenNoChanges(): void
     {
+        $changesSummary = new ChangesSummary(0, [], [], [], false);
+
         $this->changeDetectionService->expects(self::once())
             ->method('getChangesSummary')
-            ->willReturn(['has_changes' => false]);
+            ->willReturn($changesSummary);
 
         $result = $this->subject->createMigration('Test migration', 'Test Author');
 
@@ -64,9 +67,11 @@ class MigrationServiceTest extends TestCase
     #[Test]
     public function createMigrationThrowsExceptionWhenNoMigrationPaths(): void
     {
+        $changesSummary = new ChangesSummary(1, ['pages'], [], [], true);
+
         $this->changeDetectionService->expects(self::once())
             ->method('getChangesSummary')
-            ->willReturn(['has_changes' => true]);
+            ->willReturn($changesSummary);
 
         $this->configuration->expects(self::once())
             ->method('getMigrationPaths')
@@ -81,12 +86,13 @@ class MigrationServiceTest extends TestCase
     #[Test]
     public function createMigrationReturnsDryRunResult(): void
     {
-        $changesSummary = [
-            'has_changes' => true,
-            'changed_tables' => ['pages', 'tt_content'],
-            'unchanged_tables' => [],
-            'no_baseline_tables' => [],
-        ];
+        $changesSummary = new ChangesSummary(
+            2,
+            ['pages', 'tt_content'],
+            [],
+            [],
+            true
+        );
 
         $this->changeDetectionService->expects(self::once())
             ->method('getChangesSummary')

@@ -75,6 +75,9 @@ class DataSnapshotRepository
 
     /**
      * Find snapshots by migration version
+     * @param string $migrationVersion
+     * @return DataSnapshot[]
+     * @throws \Doctrine\DBAL\Exception
      */
     public function findByMigrationVersion(string $migrationVersion): array
     {
@@ -209,6 +212,25 @@ class DataSnapshotRepository
             ->where($queryBuilder->expr()->eq('table_name', $queryBuilder->createNamedParameter($tableName)))
             ->executeQuery()
             ->fetchOne();
+    }
+
+    /**
+     * Find the current snapshot for change tracking
+     */
+    public function findCurrentSnapshot(): ?DataSnapshot
+    {
+        $connection = $this->getConnection();
+        $queryBuilder = $connection->createQueryBuilder();
+
+        $row = $queryBuilder->select('*')
+            ->from(self::TABLE_NAME)
+            ->where($queryBuilder->expr()->eq('table_name', $queryBuilder->createNamedParameter(self::TABLE_NAME)))
+            ->orderBy('created_at', 'DESC')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return $row ? DataSnapshot::fromArray($row) : null;
     }
 
     /**

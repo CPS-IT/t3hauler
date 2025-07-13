@@ -8,7 +8,7 @@ T3Hauler uses a custom structured export format to handle TYPO3 data exports wit
 
 ## File Structure
 
-All exports contain three main sections:
+All exports contain four main sections:
 
 ### 1. Metadata
 Contains export information and configuration:
@@ -17,14 +17,16 @@ Contains export information and configuration:
   "metadata": {
     "created_at": 1701432000,
     "created_by": "t3hauler",
-    "format_version": "1.0",
+    "format_version": "2.0",
     "charset": "utf-8",
     "page_id": 0,
     "export_type": "changed_data",
     "exclude_disabled": false,
     "processed_at": 1701432100,
     "total_records": 25,
-    "exported_tables": ["pages", "tt_content", "sys_file_reference"]
+    "exported_tables": ["pages", "tt_content", "sys_file_reference"],
+    "snapshot_uid": 123,
+    "baseline_snapshot": "snapshot_20241201_120000"
   }
 }
 ```
@@ -58,6 +60,56 @@ Defines relationships between records for proper import ordering:
         "field": "uid_foreign",
         "to_table": "tt_content",
         "to_uid": 101
+      }
+    ]
+  }
+}
+```
+
+### 4. Change Records
+Contains detailed information about individual record changes:
+```json
+{
+  "change_records": {
+    "summary": {
+      "insert": 5,
+      "update": 15,
+      "delete": 2,
+      "move": 3,
+      "total": 25
+    },
+    "records": [
+      {
+        "table_name": "pages",
+        "record_uid": 1,
+        "change_type": "insert",
+        "field_changes": {
+          "title": {"old": null, "new": "New Page"},
+          "hidden": {"old": null, "new": 0}
+        },
+        "record_hash": "abc123...",
+        "previous_hash": null,
+        "detected_at": 1701432000,
+        "be_user": 1,
+        "workspace": 0,
+        "language_uid": 0,
+        "correlation_id": "t3h_abc123"
+      },
+      {
+        "table_name": "tt_content",
+        "record_uid": 101,
+        "change_type": "update",
+        "field_changes": {
+          "header": {"old": "Old Header", "new": "New Header"},
+          "bodytext": {"old": "Old text", "new": "New text"}
+        },
+        "record_hash": "def456...",
+        "previous_hash": "xyz789...",
+        "detected_at": 1701432050,
+        "be_user": 1,
+        "workspace": 0,
+        "language_uid": 0,
+        "correlation_id": "t3h_def456"
       }
     ]
   }
@@ -102,13 +154,36 @@ When importing, the system:
 }
 ```
 
+## Enhanced Change Detection
+
+The improved change detection system provides:
+
+### Record-Level Tracking
+- **Individual record changes** are tracked through DataHandler hooks
+- **Field-level changes** show exactly what was modified
+- **Change types** include insert, update, delete, and move operations
+- **User context** tracks who made the changes and when
+
+### Change Metadata
+- **Correlation IDs** group related changes together
+- **Workspace support** tracks changes in different workspaces
+- **Language support** handles multilingual content changes
+- **Backend user tracking** shows who made each change
+
+### Migration Benefits
+- **Precise exports** only include actually changed records
+- **Detailed change information** helps with conflict resolution
+- **Audit trail** provides complete change history
+- **Rollback support** enables safe undo operations
+
 ## Migration Workflow
 
-1. **Detection**: Identify changed tables since last snapshot
-2. **Export**: Create structured export with dependency resolution
-3. **Package**: Combine export with metadata for migration
-4. **Transfer**: Deploy migration files to target environment
-5. **Import**: Apply changes with integrity validation
-6. **Verify**: Confirm successful import and update baselines
+1. **Snapshot Creation**: Create baseline snapshots for change tracking
+2. **Change Detection**: DataHandler hooks automatically track record changes
+3. **Export Generation**: Create structured export with dependency resolution
+4. **Change Records**: Include detailed change information in migration
+5. **Transfer**: Deploy migration files to target environment
+6. **Import**: Apply changes with integrity validation and conflict detection
+7. **Verify**: Confirm successful import and update baselines
 
 This format ensures reliable, ordered data migration while maintaining TYPO3 relationships and referential integrity.

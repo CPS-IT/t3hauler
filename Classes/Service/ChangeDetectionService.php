@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace Cpsit\T3hauler\Service;
 
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
+use Cpsit\T3hauler\Domain\Dto\ChangeDetectionResult;
+use Cpsit\T3hauler\Domain\Dto\ChangesSummary;
+use Cpsit\T3hauler\Domain\Dto\TableChanges;
 use Cpsit\T3hauler\Domain\Model\DataSnapshot;
+use Cpsit\T3hauler\Domain\Repository\ChangeRecordRepository;
 use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
 use Cpsit\T3hauler\Utility\HashUtility;
 
@@ -14,18 +18,19 @@ use Cpsit\T3hauler\Utility\HashUtility;
  *
  * Compares current table state with stored snapshots to identify changes
  */
-class ChangeDetectionService
+readonly class ChangeDetectionService
 {
     public function __construct(
-        private readonly HashUtility $hashUtility,
-        private readonly DataSnapshotRepository $snapshotRepository,
-        private readonly T3HaulerConfiguration $configuration
+        private HashUtility $hashUtility,
+        private DataSnapshotRepository $snapshotRepository,
+        private T3HaulerConfiguration $configuration,
+        private ChangeRecordRepository $changeRecordRepository
     ) {}
 
     /**
      * Detect changes for all configured tables
      */
-    public function detectChanges(?string $baselineIdentifier = null): array
+    public function detectChanges(?string $baselineIdentifier = null): ChangeDetectionResult
     {
         $enabledTables = $this->configuration->getEnabledTables();
         $excludedFields = $this->configuration->getExcludedFields();
@@ -34,12 +39,10 @@ class ChangeDetectionService
 
         foreach ($enabledTables as $tableName) {
             $tableChanges = $this->detectTableChanges($tableName, $excludedFields, $baselineIdentifier);
-            if (!empty($tableChanges)) {
-                $changes[$tableName] = $tableChanges;
-            }
+            $changes[] = $tableChanges;
         }
 
-        return $changes;
+        return ChangeDetectionResult::fromTableChanges($changes);
     }
 
     /**
@@ -49,7 +52,7 @@ class ChangeDetectionService
         string $tableName,
         array $excludedFields = [],
         ?string $baselineIdentifier = null
-    ): array {
+    ): TableChanges {
         // Get current hash
         $currentHash = $this->hashUtility->calculateTableHash(
             $tableName,
@@ -64,27 +67,26 @@ class ChangeDetectionService
             : $this->snapshotRepository->findLatestByTableName($tableName);
 
         if ($baselineSnapshot === null) {
-            return [
-                'status' => 'no_baseline',
-                'message' => 'No baseline snapshot found for table ' . $tableName,
-                'current_hash' => $currentHash,
-                'baseline_hash' => null,
-                'changed' => true,
-            ];
+            return TableChanges::createNoBaseline($tableName, $currentHash);
         }
 
         $hasChanges = !$baselineSnapshot->matchesHash($currentHash);
 
-        return [
-            'status' => $hasChanges ? 'changed' : 'unchanged',
-            'message' => $hasChanges
-                ? 'Changes detected in table ' . $tableName
-                : 'No changes detected in table ' . $tableName,
-            'current_hash' => $currentHash,
-            'baseline_hash' => $baselineSnapshot->getHash(),
-            'baseline_created_at' => $baselineSnapshot->getCreatedAt(),
-            'changed' => $hasChanges,
-        ];
+        if ($hasChanges) {
+            return TableChanges::createChanged(
+                $tableName,
+                $currentHash,
+                $baselineSnapshot->getHash(),
+                $baselineSnapshot->getCreatedAt()
+            );
+        }
+
+        return TableChanges::createUnchanged(
+            $tableName,
+            $currentHash,
+            $baselineSnapshot->getHash(),
+            $baselineSnapshot->getCreatedAt()
+        );
     }
 
     /**
@@ -104,8 +106,9 @@ class ChangeDetectionService
         }
 
         $setHash = hash($this->configuration->getHashAlgorithm(), implode('|', $hashes));
+        $setIdentifier = $identifier ?? DataSnapshot::generateIdentifier(DataSnapshotRepository::TABLE_NAME);
         $snapshotSet = new DataSnapshot(
-            $identifier,
+            $setIdentifier,
             DataSnapshotRepository::TABLE_NAME,
             $setHash
         );
@@ -152,47 +155,16 @@ class ChangeDetectionService
     public function hasChanges(?string $baselineIdentifier = null): bool
     {
         $changes = $this->detectChanges($baselineIdentifier);
-
-        foreach ($changes as $tableChanges) {
-            if ($tableChanges['changed'] === true) {
-                return true;
-            }
-        }
-
-        return false;
+        return $changes->hasChanges;
     }
 
     /**
      * Get a summary of changes
      */
-    public function getChangesSummary(?string $baselineIdentifier = null): array
+    public function getChangesSummary(?string $baselineIdentifier = null): ChangesSummary
     {
         $changes = $this->detectChanges($baselineIdentifier);
-        $changedTables = [];
-        $unchangedTables = [];
-        $noBaselineTables = [];
-
-        foreach ($changes as $tableName => $tableChanges) {
-            switch ($tableChanges['status']) {
-                case 'changed':
-                    $changedTables[] = $tableName;
-                    break;
-                case 'unchanged':
-                    $unchangedTables[] = $tableName;
-                    break;
-                case 'no_baseline':
-                    $noBaselineTables[] = $tableName;
-                    break;
-            }
-        }
-
-        return [
-            'total_tables' => count($changes),
-            'changed_tables' => $changedTables,
-            'unchanged_tables' => $unchangedTables,
-            'no_baseline_tables' => $noBaselineTables,
-            'has_changes' => !empty($changedTables) || !empty($noBaselineTables),
-        ];
+        return ChangesSummary::fromChangeDetectionResult($changes);
     }
 
     /**
@@ -217,6 +189,91 @@ class ChangeDetectionService
             'changed' => $hasChanges,
             'time_difference' => $snapshot2->getCreatedAt()->getTimestamp() - $snapshot1->getCreatedAt()->getTimestamp(),
         ];
+    }
+
+    /**
+     * Get detailed record-level changes for a snapshot
+     */
+    public function getDetailedChanges(int $snapshotUid): array
+    {
+        $changeRecords = $this->changeRecordRepository->findBySnapshotUid($snapshotUid);
+
+        $changes = [
+            'summary' => $this->changeRecordRepository->getStatistics($snapshotUid),
+            'records' => [],
+            'by_table' => [],
+            'by_type' => [],
+        ];
+
+        foreach ($changeRecords as $changeRecord) {
+            $tableName = $changeRecord->getTableName();
+            $changeType = $changeRecord->getChangeType();
+
+            $changeData = [
+                'uid' => $changeRecord->getUid(),
+                'table_name' => $tableName,
+                'record_uid' => $changeRecord->getRecordUid(),
+                'record_pid' => $changeRecord->getRecordPid(),
+                'change_type' => $changeType->value,
+                'field_changes' => $changeRecord->getFieldChangesArray(),
+                'record_hash' => $changeRecord->getRecordHash(),
+                'previous_hash' => $changeRecord->getPreviousHash(),
+                'detected_at' => $changeRecord->getDetectedAt(),
+                'be_user' => $changeRecord->getBeUser(),
+                'workspace' => $changeRecord->getWorkspace(),
+                'language_uid' => $changeRecord->getLanguageUid(),
+                'correlation_id' => $changeRecord->getCorrelationId(),
+            ];
+
+            $changes['records'][] = $changeData;
+
+            // Group by table
+            if (!isset($changes['by_table'][$tableName])) {
+                $changes['by_table'][$tableName] = [];
+            }
+            $changes['by_table'][$tableName][] = $changeData;
+
+            // Group by type
+            $changeTypeValue = $changeType->value;
+            if (!isset($changes['by_type'][$changeTypeValue])) {
+                $changes['by_type'][$changeTypeValue] = [];
+            }
+            $changes['by_type'][$changeTypeValue][] = $changeData;
+        }
+
+        return $changes;
+    }
+
+    /**
+     * Get changes for a specific table since a snapshot
+     */
+    public function getTableChanges(string $tableName, int $snapshotUid): array
+    {
+        return $this->changeRecordRepository->findByTableName($tableName, $snapshotUid);
+    }
+
+    /**
+     * Get changes for a specific record
+     */
+    public function getRecordChanges(string $tableName, int $recordUid, int $snapshotUid): array
+    {
+        return $this->changeRecordRepository->findByTableAndRecord($tableName, $recordUid, $snapshotUid);
+    }
+
+    /**
+     * Check if there are tracked changes for a snapshot
+     */
+    public function hasTrackedChanges(int $snapshotUid): bool
+    {
+        return $this->changeRecordRepository->countBySnapshotUid($snapshotUid) > 0;
+    }
+
+    /**
+     * Get current snapshot for tracking changes
+     */
+    public function getCurrentSnapshot(): ?DataSnapshot
+    {
+        return $this->snapshotRepository->findCurrentSnapshot();
     }
 
     /**

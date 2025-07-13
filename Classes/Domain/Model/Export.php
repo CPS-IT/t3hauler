@@ -30,15 +30,6 @@ class Export
     }
 
     /**
-     * Initialize export with page ID and type
-     */
-    public function init(int $pageId, string $type): void
-    {
-        $this->metadata['page_id'] = $pageId;
-        $this->metadata['export_type'] = $type;
-    }
-
-    /**
      * Set character encoding
      */
     public function setCharset(string $charset): void

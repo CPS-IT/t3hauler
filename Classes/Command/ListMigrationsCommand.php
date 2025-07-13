@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Command;
 
+use Cpsit\T3hauler\Command\Option\ListFormatOption;
+use Cpsit\T3hauler\Command\Option\PathOption;
+use Cpsit\T3hauler\Command\Option\StatusOption;
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Domain\Model\Migration;
+use DWenzel\T3extensionTools\Command\OptionAwareInterface;
+use DWenzel\T3extensionTools\Traits\Command\ConfigureTrait;
+use DWenzel\T3extensionTools\Traits\Command\OptionAwareTrait;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -23,47 +28,34 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
     aliases: ['haul:list'],
     help: 'This command lists all migrations found in the configured migration paths.'
 )]
-class ListMigrationsCommand extends Command
+class ListMigrationsCommand extends Command implements OptionAwareInterface
 {
+    use OptionAwareTrait;
+    use ConfigureTrait;
+
+    public const string MESSAGE_DESCRIPTION_COMMAND = 'List all available migrations';
+    public const string MESSAGE_HELP_COMMAND = 'This command lists all migrations found in the configured migration paths.';
+
+    protected const array OPTIONS = [
+        ListFormatOption::class,
+        StatusOption::class,
+        PathOption::class,
+    ];
+
+    protected static array $optionsToConfigure = self::OPTIONS;
+
     public function __construct(
         private readonly T3HaulerConfiguration $configuration
     ) {
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this->addOption(
-            'format',
-            'f',
-            InputOption::VALUE_OPTIONAL,
-            'Output format (table, json)',
-            'table'
-        );
-
-        $this->addOption(
-            'status',
-            's',
-            InputOption::VALUE_OPTIONAL,
-            'Filter by status (pending, applied, failed)',
-            null
-        );
-
-        $this->addOption(
-            'path',
-            'p',
-            InputOption::VALUE_OPTIONAL,
-            'Show migrations from specific path only',
-            null
-        );
-    }
-
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $format = $input->getOption('format');
-        $statusFilter = $input->getOption('status');
-        $pathFilter = $input->getOption('path');
+        $format = $input->getOption(ListFormatOption::NAME);
+        $statusFilter = $input->getOption(StatusOption::NAME);
+        $pathFilter = $input->getOption(PathOption::NAME);
 
         try {
             $migrations = $this->findAllMigrations($pathFilter);

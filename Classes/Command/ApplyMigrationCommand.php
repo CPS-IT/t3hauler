@@ -4,16 +4,24 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Command;
 
+use Cpsit\T3hauler\Command\Argument\MigrationArgument;
+use Cpsit\T3hauler\Command\Option\DryRunOption;
+use Cpsit\T3hauler\Command\Option\ForceOption;
+use Cpsit\T3hauler\Command\Option\FormatOption;
+use Cpsit\T3hauler\Command\Option\ValidateOption;
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Domain\Repository\MigrationRepository;
 use Cpsit\T3hauler\Exception\MigrationNotFoundException;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
 use Cpsit\T3hauler\Service\ImportService;
+use DWenzel\T3extensionTools\Command\ArgumentAwareInterface;
+use DWenzel\T3extensionTools\Command\OptionAwareInterface;
+use DWenzel\T3extensionTools\Traits\Command\ArgumentAwareTrait;
+use DWenzel\T3extensionTools\Traits\Command\ConfigureTrait;
+use DWenzel\T3extensionTools\Traits\Command\OptionAwareTrait;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -26,8 +34,29 @@ use Symfony\Component\Console\Style\SymfonyStyle;
     aliases: ['haul:apply'],
     help: 'This command applies a migration to the target environment with integrity validation.'
 )]
-class ApplyMigrationCommand extends Command
+class ApplyMigrationCommand extends Command implements ArgumentAwareInterface, OptionAwareInterface
 {
+    use ArgumentAwareTrait;
+    use OptionAwareTrait;
+    use ConfigureTrait;
+
+    public const string MESSAGE_DESCRIPTION_COMMAND = 'Apply migration with validation';
+    public const string MESSAGE_HELP_COMMAND = 'This command applies a migration to the target environment with integrity validation.';
+
+    protected const array ARGUMENTS = [
+        MigrationArgument::class,
+    ];
+
+    protected const array OPTIONS = [
+        ValidateOption::class,
+        DryRunOption::class,
+        ForceOption::class,
+        FormatOption::class,
+    ];
+
+    protected static array $argumentsToConfigure = self::ARGUMENTS;
+    protected static array $optionsToConfigure = self::OPTIONS;
+
     public function __construct(
         private readonly T3HaulerConfiguration $configuration,
         private readonly MigrationRepository $migrationRepository,
@@ -37,50 +66,13 @@ class ApplyMigrationCommand extends Command
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this->setDescription('Apply migration with validation')
-            ->setHelp('This command applies a migration to the target environment with integrity validation.')
-            ->addArgument(
-                'migration',
-                InputArgument::REQUIRED,
-                'Migration identifier or version to apply'
-            )
-            ->addOption(
-                'validate',
-                null,
-                InputOption::VALUE_NONE,
-                'Perform integrity validation before applying'
-            )
-            ->addOption(
-                'dry-run',
-                'd',
-                InputOption::VALUE_NONE,
-                'Show what would be applied without making changes'
-            )
-            ->addOption(
-                'force',
-                'f',
-                InputOption::VALUE_NONE,
-                'Force application even if validation fails'
-            )
-            ->addOption(
-                'format',
-                null,
-                InputOption::VALUE_REQUIRED,
-                'Export format to use (json, xml, yaml)',
-                'json'
-            );
-    }
-
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $migrationId = $input->getArgument('migration');
-        $validate = $input->getOption('validate');
-        $dryRun = $input->getOption('dry-run');
-        $force = $input->getOption('force');
-        $format = $input->getOption('format');
+        $migrationId = $input->getArgument(MigrationArgument::NAME);
+        $validate = $input->getOption(ValidateOption::NAME);
+        $dryRun = $input->getOption(DryRunOption::NAME);
+        $force = $input->getOption(ForceOption::NAME);
 
         $io->title('T3Hauler - Apply Migration');
 

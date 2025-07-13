@@ -1,0 +1,4 @@
+be_users,,,,,,,,,,,
+,uid,username,password,admin,disable,deleted,starttime,endtime,crdate,tstamp,realName,email
+,1,test_admin,"$argon2i$v=19$m=65536,t=16,p=1$UnlvY2tVc2VyUGFzcw$6kJgB3kgzdhgUFplKPGgFy8WIRmEMhqFj+k8wP9j4rY",1,0,0,0,0,1701432000,1701432000,Test Administrator,test@example.com
+,2,test_editor,"$argon2i$v=19$m=65536,t=16,p=1$UnlvY2tVc2VyUGFzcw$6kJgB3kgzdhgUFplKPGgFy8WIRmEMhqFj+k8wP9j4rY",0,0,0,0,0,1701432100,1701432100,Test Editor,editor@example.com

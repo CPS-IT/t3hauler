@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<dataset>
+    <!-- Content elements for testing -->
+    <tt_content>
+        <uid>1</uid>
+        <pid>2</pid>
+        <CType>text</CType>
+        <header>Test Header 1</header>
+        <bodytext>This is test content for functional testing.</bodytext>
+        <deleted>0</deleted>
+        <hidden>0</hidden>
+        <starttime>0</starttime>
+        <endtime>0</endtime>
+        <sorting>256</sorting>
+        <crdate>1701432400</crdate>
+        <tstamp>1701432400</tstamp>
+        <cruser_id>1</cruser_id>
+        <colPos>0</colPos>
+    </tt_content>
+
+    <tt_content>
+        <uid>2</uid>
+        <pid>2</pid>
+        <CType>textmedia</CType>
+        <header>Test Header 2</header>
+        <bodytext>Another test content element with media.</bodytext>
+        <deleted>0</deleted>
+        <hidden>0</hidden>
+        <starttime>0</starttime>
+        <endtime>0</endtime>
+        <sorting>512</sorting>
+        <crdate>1701432500</crdate>
+        <tstamp>1701432500</tstamp>
+        <cruser_id>1</cruser_id>
+        <colPos>0</colPos>
+    </tt_content>
+
+    <!-- Hidden content element -->
+    <tt_content>
+        <uid>3</uid>
+        <pid>3</pid>
+        <CType>text</CType>
+        <header>Hidden Content</header>
+        <bodytext>This content is hidden for testing.</bodytext>
+        <deleted>0</deleted>
+        <hidden>1</hidden>
+        <starttime>0</starttime>
+        <endtime>0</endtime>
+        <sorting>256</sorting>
+        <crdate>1701432600</crdate>
+        <tstamp>1701432600</tstamp>
+        <cruser_id>1</cruser_id>
+        <colPos>0</colPos>
+    </tt_content>
+</dataset>

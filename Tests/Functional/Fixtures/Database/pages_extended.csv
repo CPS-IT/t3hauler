@@ -1,0 +1,10 @@
+pages,,,,,,,,,,,
+,uid,pid,title,doktype,deleted,hidden,starttime,endtime,sorting,crdate,tstamp,slug,subtitle,description
+,1,0,Root Page,1,0,0,0,0,256,1701432000,1701432000,,Main Root,Root page for testing
+,2,1,Test Page 1,1,0,0,0,0,256,1701432100,1701432100,/test-page-1,First Test,First test page content
+,3,1,Test Page 2,1,0,1,0,0,512,1701432200,1701432200,/test-page-2,Second Test,Second test page content (hidden)
+,4,2,Nested Page,1,0,0,0,0,256,1701432300,1701432300,/test-page-1/nested-page,Nested Content,Nested page under Test Page 1
+,5,1,News Page,1,0,0,0,0,768,1701432400,1701432400,/news,Latest News,News and updates page
+,6,5,News Article 1,1,0,0,0,0,256,1701432500,1701432500,/news/article-1,Breaking News,First news article
+,7,5,News Article 2,1,1,0,0,0,512,1701432600,1701432600,/news/article-2,Old News,Deleted news article
+,8,1,Contact Page,1,0,0,0,0,1024,1701432700,1701432700,/contact,Get in Touch,Contact information page

@@ -1,0 +1,5 @@
+tt_content,,,,,,,,,,,,,
+,uid,pid,CType,header,bodytext,deleted,hidden,starttime,endtime,sorting,crdate,tstamp,colPos
+,1,2,text,Test Header 1,This is test content for functional testing.,0,0,0,0,256,1701432400,1701432400,0
+,2,2,textmedia,Test Header 2,Another test content element with media.,0,0,0,0,512,1701432500,1701432500,0
+,3,3,text,Hidden Content,This content is hidden for testing.,0,1,0,0,256,1701432600,1701432600,0

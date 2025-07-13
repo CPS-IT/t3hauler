@@ -7,8 +7,8 @@ on:
     branches: [ master, develop ]
 
 jobs:
-  unit-tests:
-    name: "Unit Tests with TYPO3 ${{ matrix.typo3-version }} and PHP ${{ matrix.php-version }}"
+  tests:
+    name: "Unit & Functional Tests with TYPO3 ${{ matrix.typo3-version }} and PHP ${{ matrix.php-version }}"
     runs-on: ubuntu-latest
 
     strategy:
@@ -24,7 +24,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: mbstring, xml, intl, zip, json, iconv, gd
+          extensions: mbstring, xml, intl, zip, json, iconv, gd, sqlite3
           coverage: xdebug
           tools: composer:v2
 
@@ -49,6 +49,10 @@ jobs:
           php --version
           composer install --no-progress
           composer test:unit
+      
+      - name: Run functional tests
+        run: |
+          composer test:functional
 
   coverage:
     name: "Test Coverage with TYPO3 ^13.4 and PHP 8.3"
@@ -62,7 +66,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, xml, intl, zip, json, iconv, gd
+          extensions: mbstring, xml, intl, zip, json, iconv, gd, sqlite3
           coverage: xdebug
           tools: composer:v2
 
