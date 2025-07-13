@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Tests\Unit\Domain\Repository;
 
+use Cpsit\T3hauler\Domain\Enumeration\RecordChangeType;
 use Cpsit\T3hauler\Domain\Model\ChangeRecord;
 use Cpsit\T3hauler\Domain\Repository\ChangeRecordRepository;
 use Doctrine\DBAL\Result;
@@ -54,7 +55,7 @@ final class ChangeRecordRepositoryTest extends TestCase
         $changeRecord->setSnapshotUid(123);
         $changeRecord->setTableName('pages');
         $changeRecord->setRecordUid(456);
-        $changeRecord->setChangeType('insert');
+        $changeRecord->setChangeType(RecordChangeType::INSERT);
 
         $this->connection->expects(self::once())
             ->method('insert')

@@ -78,83 +78,118 @@
             "^(NEW[a-f0-9]+|\\d+)$": {
               "type": "object",
               "description": "Individual record data",
-              "required": ["uid"],
+              "required": ["metadata", "fields"],
               "properties": {
-                "uid": {
-                  "oneOf": [
-                    {
+                "metadata": {
+                  "type": "object",
+                  "description": "Record metadata including change information",
+                  "required": ["changeType"],
+                  "properties": {
+                    "changeType": {
                       "type": "string",
-                      "pattern": "^NEW[a-f0-9]+$",
-                      "description": "Temporary UID for new records"
+                      "description": "Type of change that occurred to this record",
+                      "enum": ["insert", "update", "delete", "move"]
                     },
-                    {
+                    "previousHash": {
+                      "type": "string",
+                      "description": "Hash of the record before the change",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "recordHash": {
+                      "type": "string",
+                      "description": "Hash of the record after the change",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "timestampBefore": {
                       "type": "integer",
-                      "minimum": 1,
-                      "description": "Numeric UID for existing records"
+                      "description": "Timestamp before the change occurred",
+                      "minimum": 0
                     }
-                  ]
+                  },
+                  "additionalProperties": false
                 },
-                "pid": {
-                  "type": "integer",
-                  "description": "Parent page ID",
-                  "minimum": 0
-                },
-                "tstamp": {
-                  "type": "integer",
-                  "description": "Last modification timestamp",
-                  "minimum": 0
-                },
-                "crdate": {
-                  "type": "integer",
-                  "description": "Creation timestamp",
-                  "minimum": 0
-                },
-                "deleted": {
-                  "type": "integer",
-                  "description": "Deletion flag (0 or 1)",
-                  "enum": [0, 1]
-                },
-                "hidden": {
-                  "type": "integer",
-                  "description": "Hidden flag (0 or 1)",
-                  "enum": [0, 1]
-                },
-                "starttime": {
-                  "type": "integer",
-                  "description": "Publication start time",
-                  "minimum": 0
-                },
-                "endtime": {
-                  "type": "integer",
-                  "description": "Publication end time",
-                  "minimum": 0
-                },
-                "sorting": {
-                  "type": "integer",
-                  "description": "Sorting order",
-                  "minimum": 0
-                },
-                "sys_language_uid": {
-                  "type": "integer",
-                  "description": "System language UID",
-                  "minimum": -1
-                },
-                "l18n_parent": {
-                  "type": "integer",
-                  "description": "Localization parent record",
-                  "minimum": 0
-                },
-                "l10n_source": {
-                  "type": "integer",
-                  "description": "Localization source record",
-                  "minimum": 0
-                },
-                "CType": {
-                  "type": "string",
-                  "description": "Content type for tt_content records"
+                "fields": {
+                  "type": "object",
+                  "description": "Record field data",
+                  "properties": {
+                    "uid": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^NEW[a-f0-9]+$",
+                          "description": "Temporary UID for new records"
+                        },
+                        {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "Numeric UID for existing records"
+                        }
+                      ]
+                    },
+                    "pid": {
+                      "type": "integer",
+                      "description": "Parent page ID",
+                      "minimum": 0
+                    },
+                    "tstamp": {
+                      "type": "integer",
+                      "description": "Last modification timestamp",
+                      "minimum": 0
+                    },
+                    "crdate": {
+                      "type": "integer",
+                      "description": "Creation timestamp",
+                      "minimum": 0
+                    },
+                    "deleted": {
+                      "type": "integer",
+                      "description": "Deletion flag (0 or 1)",
+                      "enum": [0, 1]
+                    },
+                    "hidden": {
+                      "type": "integer",
+                      "description": "Hidden flag (0 or 1)",
+                      "enum": [0, 1]
+                    },
+                    "starttime": {
+                      "type": "integer",
+                      "description": "Publication start time",
+                      "minimum": 0
+                    },
+                    "endtime": {
+                      "type": "integer",
+                      "description": "Publication end time",
+                      "minimum": 0
+                    },
+                    "sorting": {
+                      "type": "integer",
+                      "description": "Sorting order",
+                      "minimum": 0
+                    },
+                    "sys_language_uid": {
+                      "type": "integer",
+                      "description": "System language UID",
+                      "minimum": -1
+                    },
+                    "l18n_parent": {
+                      "type": "integer",
+                      "description": "Localization parent record",
+                      "minimum": 0
+                    },
+                    "l10n_source": {
+                      "type": "integer",
+                      "description": "Localization source record",
+                      "minimum": 0
+                    },
+                    "CType": {
+                      "type": "string",
+                      "description": "Content type for tt_content records"
+                    }
+                  },
+                  "additionalProperties": true
                 }
               },
-              "additionalProperties": true
+              "additionalProperties": false
             }
           },
           "additionalProperties": false

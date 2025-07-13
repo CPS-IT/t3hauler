@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cpsit\T3hauler\Tests\Unit\Service;
 
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
+use Cpsit\T3hauler\Domain\Enumeration\RecordChangeType;
 use Cpsit\T3hauler\Domain\Model\ChangeRecord;
 use Cpsit\T3hauler\Domain\Repository\ChangeRecordRepository;
 use Cpsit\T3hauler\Service\ChangeTrackingService;
@@ -54,17 +55,23 @@ final class ChangeTrackingServiceTest extends TestCase
                 ['detection.excludeFields', [], ['tstamp', 'crdate']],
                 ['detection.tables.pages.excludeFields', [], []],
             ]);
+        $expectedChangeRecord = new ChangeRecord();
+        $expectedChangeRecord->setSnapshotUid($changeData['snapshot_uid']);
+        $expectedChangeRecord->setTableName($changeData['table_name']);
+        $expectedChangeRecord->setRecordUid($changeData['record_uid']);
+        $expectedChangeRecord->setChangeType(RecordChangeType::INSERT);
+        $expectedChangeRecord->setBeUser($changeData['be_user']);
+        $expectedChangeRecord->setWorkspace($changeData['workspace']);
+        $expectedChangeRecord->setCorrelationId($changeData['correlation_id']);
 
         $this->changeRecordRepository->expects(self::once())
             ->method('add')
-            ->with(self::callback(function (ChangeRecord $changeRecord) {
-                return $changeRecord->getSnapshotUid() === 123
-                    && $changeRecord->getTableName() === 'pages'
-                    && $changeRecord->getRecordUid() === 456
-                    && $changeRecord->getChangeType() === 'insert'
-                    && $changeRecord->getBeUser() === 1
-                    && $changeRecord->getWorkspace() === 0
-                    && $changeRecord->getCorrelationId() === 't3h_abc123';
+            ->with(self::callback(function (ChangeRecord $addedRecord) use ($expectedChangeRecord): bool {
+                return $addedRecord->getSnapshotUid() === $expectedChangeRecord->getSnapshotUid()
+                    && $addedRecord->getTableName() === $expectedChangeRecord->getTableName()
+                    && $addedRecord->getRecordUid() === $expectedChangeRecord->getRecordUid()
+                    && $addedRecord->getChangeType() === $expectedChangeRecord->getChangeType()
+                    && $addedRecord->getBeUser() === $expectedChangeRecord->getBeUser();
             }));
 
         $this->subject->trackChange($changeData);

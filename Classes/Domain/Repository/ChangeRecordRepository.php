@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Domain\Repository;
 
+use Cpsit\T3hauler\Domain\Enumeration\RecordChangeType;
 use Cpsit\T3hauler\Domain\Model\ChangeRecord;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\SingletonInterface;
@@ -34,7 +35,7 @@ class ChangeRecordRepository implements SingletonInterface
             'table_name' => $changeRecord->getTableName(),
             'record_uid' => $changeRecord->getRecordUid(),
             'record_pid' => $changeRecord->getRecordPid(),
-            'change_type' => $changeRecord->getChangeType(),
+            'change_type' => $changeRecord->getChangeType()->value,
             'field_changes' => $changeRecord->getFieldChanges(),
             'record_hash' => $changeRecord->getRecordHash(),
             'previous_hash' => $changeRecord->getPreviousHash(),
@@ -269,7 +270,7 @@ class ChangeRecordRepository implements SingletonInterface
         $changeRecord->setTableName($row['table_name']);
         $changeRecord->setRecordUid((int)$row['record_uid']);
         $changeRecord->setRecordPid((int)$row['record_pid']);
-        $changeRecord->setChangeType($row['change_type']);
+        $changeRecord->setChangeType(RecordChangeType::from($row['change_type']));
         $changeRecord->setFieldChanges($row['field_changes']);
         $changeRecord->setRecordHash($row['record_hash']);
         $changeRecord->setPreviousHash($row['previous_hash']);

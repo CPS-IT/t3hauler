@@ -7,6 +7,7 @@ namespace Cpsit\T3hauler\Tests\Unit\Service;
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Domain\Dto\ChangesSummary;
 use Cpsit\T3hauler\Domain\Dto\TableChanges;
+use Cpsit\T3hauler\Domain\Enumeration\RecordChangeType;
 use Cpsit\T3hauler\Domain\Enumeration\TableStatus;
 use Cpsit\T3hauler\Domain\Model\ChangeRecord;
 use Cpsit\T3hauler\Domain\Model\DataSnapshot;
@@ -239,7 +240,7 @@ class ChangeDetectionServiceTest extends TestCase
         $changeRecord->setUid(1);
         $changeRecord->setTableName('pages');
         $changeRecord->setRecordUid(456);
-        $changeRecord->setChangeType('insert');
+        $changeRecord->setChangeType(RecordChangeType::INSERT);
         $changeRecord->setDetectedAt(1701432000);
 
         $this->changeRecordRepository->expects(self::once())

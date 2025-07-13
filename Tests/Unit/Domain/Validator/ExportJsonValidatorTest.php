@@ -131,18 +131,28 @@ final class ExportJsonValidatorTest extends TestCase
             'records' => [
                 'pages' => [
                     '1' => [
-                        'uid' => 1,
-                        'pid' => 0,
-                        'title' => 'Home',
-                        'tstamp' => 1234567890,
+                        'metadata' => [
+                            'changeType' => 'insert',
+                        ],
+                        'fields' => [
+                            'uid' => 1,
+                            'pid' => 0,
+                            'title' => 'Home',
+                            'tstamp' => 1234567890,
+                        ],
                     ],
                 ],
                 'tt_content' => [
                     'NEW123abc' => [
-                        'uid' => 'NEW123abc',
-                        'pid' => 1,
-                        'header' => 'Content',
-                        'CType' => 'text',
+                        'metadata' => [
+                            'changeType' => 'insert',
+                        ],
+                        'fields' => [
+                            'uid' => 'NEW123abc',
+                            'pid' => 1,
+                            'header' => 'Content',
+                            'CType' => 'text',
+                        ],
                     ],
                 ],
             ],
@@ -309,11 +319,20 @@ final class ExportJsonValidatorTest extends TestCase
             ],
             'records' => [
                 'pages' => [
-                    '1' => ['uid' => 1],
-                    '2' => ['uid' => 2],
+                    '1' => [
+                        'metadata' => ['changeType' => 'insert'],
+                        'fields' => ['uid' => 1],
+                    ],
+                    '2' => [
+                        'metadata' => ['changeType' => 'update'],
+                        'fields' => ['uid' => 2],
+                    ],
                 ],
                 'tt_content' => [
-                    'NEW123abc' => ['uid' => 'NEW123abc'],
+                    'NEW123abc' => [
+                        'metadata' => ['changeType' => 'insert'],
+                        'fields' => ['uid' => 'NEW123abc'],
+                    ],
                 ],
                 'sys_file' => new \stdClass(),
             ],
@@ -348,15 +367,20 @@ final class ExportJsonValidatorTest extends TestCase
             'records' => [
                 'tt_content' => [
                     'NEW686aecd2efc2d' => [
-                        'uid' => 'NEW686aecd2efc2d',
-                        'pid' => 1482,
-                        'tstamp' => 1751837875,
-                        'crdate' => 1751837847,
-                        'deleted' => 0,
-                        'hidden' => 0,
-                        'CType' => 'text',
-                        'header' => 'Test content',
-                        'sorting' => 1024,
+                        'metadata' => [
+                            'changeType' => 'insert',
+                        ],
+                        'fields' => [
+                            'uid' => 'NEW686aecd2efc2d',
+                            'pid' => 1482,
+                            'tstamp' => 1751837875,
+                            'crdate' => 1751837847,
+                            'deleted' => 0,
+                            'hidden' => 0,
+                            'CType' => 'text',
+                            'header' => 'Test content',
+                            'sorting' => 1024,
+                        ],
                     ],
                 ],
             ],
@@ -401,8 +425,13 @@ final class ExportJsonValidatorTest extends TestCase
             'records' => [
                 'tt_content' => [
                     $recordId => [
-                        $uidField => $recordId,
-                        'pid' => 1,
+                        'metadata' => [
+                            'changeType' => 'insert',
+                        ],
+                        'fields' => [
+                            $uidField => $recordId,
+                            'pid' => 1,
+                        ],
                     ],
                 ],
             ],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cpsit\T3hauler\Service;
 
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
+use Cpsit\T3hauler\Domain\Enumeration\RecordChangeType;
 use Cpsit\T3hauler\Domain\Model\ChangeRecord;
 use Cpsit\T3hauler\Domain\Repository\ChangeRecordRepository;
 use Cpsit\T3hauler\Utility\HashUtility;
@@ -33,7 +34,8 @@ class ChangeTrackingService implements SingletonInterface
     {
         $tableName = $changeData['table_name'];
         $recordUid = $changeData['record_uid'];
-        $changeType = $changeData['change_type'];
+        $changeTypeString = $changeData['change_type'];
+        $changeType = RecordChangeType::from($changeTypeString);
         $newData = $changeData['new_data'] ?? [];
         $previousData = $changeData['previous_data'] ?? [];
 
@@ -41,7 +43,7 @@ class ChangeTrackingService implements SingletonInterface
         $fieldChanges = $this->calculateFieldChanges($tableName, $newData, $previousData);
 
         // Skip if no significant changes detected
-        if (empty($fieldChanges) && $changeType === 'update') {
+        if (empty($fieldChanges) && $changeType === RecordChangeType::UPDATE) {
             return;
         }
 

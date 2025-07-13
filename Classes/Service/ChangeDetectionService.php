@@ -214,7 +214,7 @@ readonly class ChangeDetectionService
                 'table_name' => $tableName,
                 'record_uid' => $changeRecord->getRecordUid(),
                 'record_pid' => $changeRecord->getRecordPid(),
-                'change_type' => $changeType,
+                'change_type' => $changeType->value,
                 'field_changes' => $changeRecord->getFieldChangesArray(),
                 'record_hash' => $changeRecord->getRecordHash(),
                 'previous_hash' => $changeRecord->getPreviousHash(),
@@ -234,10 +234,11 @@ readonly class ChangeDetectionService
             $changes['by_table'][$tableName][] = $changeData;
 
             // Group by type
-            if (!isset($changes['by_type'][$changeType])) {
-                $changes['by_type'][$changeType] = [];
+            $changeTypeValue = $changeType->value;
+            if (!isset($changes['by_type'][$changeTypeValue])) {
+                $changes['by_type'][$changeTypeValue] = [];
             }
-            $changes['by_type'][$changeType][] = $changeData;
+            $changes['by_type'][$changeTypeValue][] = $changeData;
         }
 
         return $changes;

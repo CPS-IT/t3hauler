@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Tests\Unit\Domain\Model;
 
+use Cpsit\T3hauler\Domain\Enumeration\RecordChangeType;
 use Cpsit\T3hauler\Domain\Model\ChangeRecord;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -94,13 +95,13 @@ final class ChangeRecordTest extends TestCase
     #[Test]
     public function getChangeTypeReturnsUpdateByDefault(): void
     {
-        self::assertSame('update', $this->subject->getChangeType());
+        self::assertSame(RecordChangeType::UPDATE, $this->subject->getChangeType());
     }
 
     #[Test]
     public function setChangeTypeSetsAndReturnsChangeType(): void
     {
-        $changeType = 'insert';
+        $changeType = RecordChangeType::INSERT;
         $this->subject->setChangeType($changeType);
         self::assertSame($changeType, $this->subject->getChangeType());
     }
@@ -241,63 +242,63 @@ final class ChangeRecordTest extends TestCase
     #[Test]
     public function isInsertReturnsTrueForInsertChangeType(): void
     {
-        $this->subject->setChangeType('insert');
+        $this->subject->setChangeType(RecordChangeType::INSERT);
         self::assertTrue($this->subject->isInsert());
     }
 
     #[Test]
     public function isInsertReturnsFalseForNonInsertChangeType(): void
     {
-        $this->subject->setChangeType('update');
+        $this->subject->setChangeType(RecordChangeType::UPDATE);
         self::assertFalse($this->subject->isInsert());
     }
 
     #[Test]
     public function isUpdateReturnsTrueForUpdateChangeType(): void
     {
-        $this->subject->setChangeType('update');
+        $this->subject->setChangeType(RecordChangeType::UPDATE);
         self::assertTrue($this->subject->isUpdate());
     }
 
     #[Test]
     public function isUpdateReturnsFalseForNonUpdateChangeType(): void
     {
-        $this->subject->setChangeType('insert');
+        $this->subject->setChangeType(RecordChangeType::INSERT);
         self::assertFalse($this->subject->isUpdate());
     }
 
     #[Test]
     public function isDeleteReturnsTrueForDeleteChangeType(): void
     {
-        $this->subject->setChangeType('delete');
+        $this->subject->setChangeType(RecordChangeType::DELETE);
         self::assertTrue($this->subject->isDelete());
     }
 
     #[Test]
     public function isDeleteReturnsFalseForNonDeleteChangeType(): void
     {
-        $this->subject->setChangeType('update');
+        $this->subject->setChangeType(RecordChangeType::UPDATE);
         self::assertFalse($this->subject->isDelete());
     }
 
     #[Test]
     public function isMoveReturnsTrueForMoveChangeType(): void
     {
-        $this->subject->setChangeType('move');
+        $this->subject->setChangeType(RecordChangeType::MOVE);
         self::assertTrue($this->subject->isMove());
     }
 
     #[Test]
     public function isMoveReturnsFalseForNonMoveChangeType(): void
     {
-        $this->subject->setChangeType('update');
+        $this->subject->setChangeType(RecordChangeType::UPDATE);
         self::assertFalse($this->subject->isMove());
     }
 
     #[Test]
     public function toStringReturnsFormattedString(): void
     {
-        $this->subject->setChangeType('insert');
+        $this->subject->setChangeType(RecordChangeType::INSERT);
         $this->subject->setTableName('pages');
         $this->subject->setRecordUid(123);
         $this->subject->setDetectedAt(1701432000);

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Domain\Model;
 
+use Cpsit\T3hauler\Domain\Enumeration\RecordChangeType;
+
 /**
  * Model for tracking individual record changes
  */
@@ -14,7 +16,7 @@ class ChangeRecord
     private string $tableName = '';
     private int $recordUid = 0;
     private int $recordPid = 0;
-    private string $changeType = 'update';
+    private RecordChangeType $changeType = RecordChangeType::UPDATE;
     private string $fieldChanges = '';
     private string $recordHash = '';
     private ?string $previousHash = null;
@@ -74,12 +76,12 @@ class ChangeRecord
         $this->recordPid = $recordPid;
     }
 
-    public function getChangeType(): string
+    public function getChangeType(): RecordChangeType
     {
         return $this->changeType;
     }
 
-    public function setChangeType(string $changeType): void
+    public function setChangeType(RecordChangeType $changeType): void
     {
         $this->changeType = $changeType;
     }
@@ -182,7 +184,7 @@ class ChangeRecord
      */
     public function isInsert(): bool
     {
-        return $this->changeType === 'insert';
+        return $this->changeType === RecordChangeType::INSERT;
     }
 
     /**
@@ -190,7 +192,7 @@ class ChangeRecord
      */
     public function isUpdate(): bool
     {
-        return $this->changeType === 'update';
+        return $this->changeType === RecordChangeType::UPDATE;
     }
 
     /**
@@ -198,7 +200,7 @@ class ChangeRecord
      */
     public function isDelete(): bool
     {
-        return $this->changeType === 'delete';
+        return $this->changeType === RecordChangeType::DELETE;
     }
 
     /**
@@ -206,7 +208,7 @@ class ChangeRecord
      */
     public function isMove(): bool
     {
-        return $this->changeType === 'move';
+        return $this->changeType === RecordChangeType::MOVE;
     }
 
     /**
@@ -216,10 +218,18 @@ class ChangeRecord
     {
         return sprintf(
             '%s %s:%d (%s)',
-            ucfirst($this->changeType),
+            ucfirst($this->changeType->value),
             $this->tableName,
             $this->recordUid,
             date('Y-m-d H:i:s', $this->detectedAt)
         );
+    }
+
+    /**
+     * Get change type description
+     */
+    public function getChangeTypeDescription(): string
+    {
+        return $this->changeType->getDescription();
     }
 }

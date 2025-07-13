@@ -200,7 +200,14 @@ final class ExportServiceTest extends TestCase
 
         // Fix configuration mock to return an array
         $this->configurationMock->method('get')
-            ->willReturn([]);
+            ->willReturnCallback(function ($key, $default = null) {
+                return match ($key) {
+                    'detection.excludeFields' => [],
+                    't3hauler.export.includeHidden' => false,
+                    't3hauler.export.includeDeleted' => false,
+                    default => $default
+                };
+            });
 
         $this->dataSnapshotRepositoryMock->method('findLatestByTableName')
             ->with('pages')
@@ -482,8 +489,14 @@ final class ExportServiceTest extends TestCase
     private function setupEmptyExportMocks(): void
     {
         $this->configurationMock->method('get')
-            ->with('detection.excludeFields', [])
-            ->willReturn([]);
+            ->willReturnCallback(function ($key, $default = null) {
+                return match ($key) {
+                    'detection.excludeFields' => [],
+                    't3hauler.export.includeHidden' => false,
+                    't3hauler.export.includeDeleted' => false,
+                    default => $default
+                };
+            });
 
         // Mock no snapshot found
         $this->dataSnapshotRepositoryMock->method('findLatestByTableName')
@@ -499,8 +512,14 @@ final class ExportServiceTest extends TestCase
 
         // Mock configuration to return empty array
         $this->configurationMock->method('get')
-            ->with('detection.excludeFields', [])
-            ->willReturn([]);
+            ->willReturnCallback(function ($key, $default = null) {
+                return match ($key) {
+                    'detection.excludeFields' => [],
+                    't3hauler.export.includeHidden' => false,
+                    't3hauler.export.includeDeleted' => false,
+                    default => $default
+                };
+            });
 
         $result = $this->subject->exportChangedData($changedTables, $outputPath);
 
@@ -524,8 +543,14 @@ final class ExportServiceTest extends TestCase
 
         // Mock configuration to return empty array
         $this->configurationMock->method('get')
-            ->with('detection.excludeFields', [])
-            ->willReturn([]);
+            ->willReturnCallback(function ($key, $default = null) {
+                return match ($key) {
+                    'detection.excludeFields' => [],
+                    't3hauler.export.includeHidden' => false,
+                    't3hauler.export.includeDeleted' => false,
+                    default => $default
+                };
+            });
 
         // Make the root directory read-only to simulate directory creation failure
         $this->vfsRoot->chmod(0444);

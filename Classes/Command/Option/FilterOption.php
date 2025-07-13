@@ -19,6 +19,6 @@ class FilterOption implements InputOptionInterface
     public const string HELP = 'Filter snapshots by name pattern';
     public const int MODE = InputOption::VALUE_OPTIONAL;
     public const string DESCRIPTION = 'Filter pattern';
-    public const ?string SHORTCUT = null;
+    public const string SHORTCUT = 'f';
     public const ?string DEFAULT = null;
 }

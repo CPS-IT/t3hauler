@@ -16,6 +16,8 @@ use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
 use Doctrine\DBAL\Exception;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
 
 /**
  * Service for exporting changed data to JSON format
@@ -137,7 +139,12 @@ readonly class ExportService
 
         $connection = $this->connectionPool->getConnectionForTable($tableName);
         $queryBuilder = $connection->createQueryBuilder();
-
+        if ($this->configuration->get('t3hauler.export.includeHidden', false)) {
+            $queryBuilder->getRestrictions()->removeByType(HiddenRestriction::class);
+        }
+        if ($this->configuration->get('t3hauler.export.includeDeleted', false)) {
+            $queryBuilder->getRestrictions()->removeByType(DeletedRestriction::class);
+        }
         try {
             $recordCount = 0;
 
@@ -169,6 +176,7 @@ readonly class ExportService
                 )
             );
 
+            $sql = $result->getSQL();
             $queryResult = $result->executeQuery();
 
             while ($row = $queryResult->fetchAssociative()) {

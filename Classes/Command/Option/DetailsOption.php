@@ -19,6 +19,6 @@ class DetailsOption implements InputOptionInterface
     public const string HELP = 'Show detailed information including table breakdown';
     public const int MODE = InputOption::VALUE_NONE;
     public const string DESCRIPTION = 'Show details';
-    public const ?string SHORTCUT = null;
+    public const string SHORTCUT = '';
     public const ?string DEFAULT = null;
 }
