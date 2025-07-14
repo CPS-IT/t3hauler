@@ -19,6 +19,6 @@ class FormatOption implements InputOptionInterface
     public const string HELP = 'Export format to use (json, xml, yaml)';
     public const int MODE = InputOption::VALUE_REQUIRED;
     public const string DESCRIPTION = 'Export format';
-    public const ?string SHORTCUT = null;
+    public const string SHORTCUT = '';
     public const string DEFAULT = 'json';
 }

@@ -16,7 +16,7 @@ class MigrationTest extends TestCase
     {
         parent::setUp();
         $this->subject = new Migration(
-            'T3H_20241201120000_abc12345',
+            '2024-12-01_12:00:00_abc12345',
             'Test Migration',
             'Test migration description',
             'Test Author',
@@ -28,7 +28,7 @@ class MigrationTest extends TestCase
     #[Test]
     public function constructorSetsPropertiesCorrectly(): void
     {
-        self::assertSame('T3H_20241201120000_abc12345', $this->subject->getMigrationId());
+        self::assertSame('2024-12-01_12:00:00_abc12345', $this->subject->getMigrationId());
         self::assertSame('Test Migration', $this->subject->getName());
         self::assertSame('Test migration description', $this->subject->getDescription());
         self::assertSame('Test Author', $this->subject->getAuthor());
@@ -75,9 +75,9 @@ class MigrationTest extends TestCase
     public function setStatusThrowsExceptionForInvalidStatus(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid migration status: invalid');
+        $this->expectExceptionMessage('Invalid migration status: nonexistent');
 
-        $this->subject->setStatus('invalid');
+        $this->subject->setStatus('nonexistent');
     }
 
     #[Test]
@@ -149,7 +149,7 @@ class MigrationTest extends TestCase
         $array = $this->subject->toArray();
 
         self::assertSame(123, $array['uid']);
-        self::assertSame('T3H_20241201120000_abc12345', $array['migration_id']);
+        self::assertSame('2024-12-01_12:00:00_abc12345', $array['migration_id']);
         self::assertSame('Test Migration', $array['name']);
         self::assertSame('Test migration description', $array['description']);
         self::assertSame('Test Author', $array['author']);
@@ -167,7 +167,7 @@ class MigrationTest extends TestCase
     {
         $data = [
             'uid' => 456,
-            'migration_id' => 'T3H_20241201130000_def67890',
+            'migration_id' => '2024-12-01_13:00:00_def67890',
             'name' => 'From Array Migration',
             'description' => 'Migration from array',
             'author' => 'Array Author',
@@ -183,7 +183,7 @@ class MigrationTest extends TestCase
         $migration = Migration::fromArray($data);
 
         self::assertSame(456, $migration->getUid());
-        self::assertSame('T3H_20241201130000_def67890', $migration->getMigrationId());
+        self::assertSame('2024-12-01_13:00:00_def67890', $migration->getMigrationId());
         self::assertSame('From Array Migration', $migration->getName());
         self::assertSame('Migration from array', $migration->getDescription());
         self::assertSame('Array Author', $migration->getAuthor());
@@ -200,7 +200,7 @@ class MigrationTest extends TestCase
     public function fromArrayHandlesMissingOptionalFields(): void
     {
         $data = [
-            'migration_id' => 'T3H_20241201140000_ghi01234',
+            'migration_id' => '2024-12-01_14:00:00_ghi01234',
             'name' => 'Minimal Migration',
             'description' => 'Minimal migration data',
             'author' => 'Minimal Author',

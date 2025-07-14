@@ -20,7 +20,7 @@ class Migration
     private string $author;
     private string $sourceHash;
     private ?string $targetHash = null;
-    private string $status = 'pending';
+    private MigrationStatus $status = MigrationStatus::PENDING;
     private string $dataFile;
     private array $metadata = [];
 
@@ -136,14 +136,26 @@ class Migration
 
     public function getStatus(): string
     {
+        return $this->status->value;
+    }
+
+    public function getStatusEnum(): MigrationStatus
+    {
         return $this->status;
     }
 
     public function setStatus(string $status): self
     {
-        if (!in_array($status, ['pending', 'applied', 'failed', 'rolled_back'], true)) {
-            throw new \InvalidArgumentException('Invalid migration status: ' . $status, 1909123456);
+        try {
+            $this->status = MigrationStatus::from($status);
+        } catch (\ValueError $e) {
+            throw new \InvalidArgumentException("Invalid migration status: {$status}", 0, $e);
         }
+        return $this;
+    }
+
+    public function setStatusEnum(MigrationStatus $status): self
+    {
         $this->status = $status;
         return $this;
     }
@@ -194,40 +206,40 @@ class Migration
 
     public function isPending(): bool
     {
-        return $this->status === 'pending';
+        return $this->status->isPending();
     }
 
     public function isApplied(): bool
     {
-        return $this->status === 'applied';
+        return $this->status->isSuccessful();
     }
 
     public function isFailed(): bool
     {
-        return $this->status === 'failed';
+        return $this->status->isFailed();
     }
 
     public function isRolledBack(): bool
     {
-        return $this->status === 'rolled_back';
+        return $this->status->isRolledBack();
     }
 
     public function markAsApplied(\DateTimeImmutable $appliedAt = null): self
     {
-        $this->status = 'applied';
+        $this->status = MigrationStatus::APPLIED;
         $this->appliedAt = $appliedAt ?? new \DateTimeImmutable();
         return $this;
     }
 
     public function markAsFailed(): self
     {
-        $this->status = 'failed';
+        $this->status = MigrationStatus::FAILED;
         return $this;
     }
 
     public function markAsRolledBack(): self
     {
-        $this->status = 'rolled_back';
+        $this->status = MigrationStatus::ROLLED_BACK;
         return $this;
     }
 
@@ -246,7 +258,7 @@ class Migration
             'author' => $this->author,
             'source_hash' => $this->sourceHash,
             'target_hash' => $this->targetHash,
-            'status' => $this->status,
+            'status' => $this->status->value,
             'data_file' => $this->dataFile,
             'metadata' => json_encode($this->metadata),
         ];

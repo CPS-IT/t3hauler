@@ -19,6 +19,6 @@ class ValidateOption implements InputOptionInterface
     public const string HELP = 'Validate the migration file before applying';
     public const int MODE = InputOption::VALUE_NONE;
     public const string DESCRIPTION = 'Enable validation';
-    public const string SHORTCUT = 'v';
+    public const string SHORTCUT = 'val';
     public const ?string DEFAULT = null;
 }

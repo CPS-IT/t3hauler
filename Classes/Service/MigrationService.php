@@ -230,9 +230,9 @@ class MigrationService
      */
     private function generateMigrationId(): string
     {
-        $timestamp = date('YmdHis');
+        $timestamp = date('Y-m-d_H:i:s');
         $random = substr(md5(uniqid((string)mt_rand(), true)), 0, 8);
-        return 'T3H_' . $timestamp . '_' . $random;
+        return $timestamp . '_' . $random;
     }
 
     /**

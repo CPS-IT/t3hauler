@@ -33,6 +33,7 @@ services:
       $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
 
   Cpsit\T3hauler\Service\ImportService:
+    public: true
     arguments:
       $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
       $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
@@ -50,12 +51,17 @@ services:
       $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
 
   Cpsit\T3hauler\Domain\Repository\MigrationRepository:
+    public: true
     arguments:
       $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
 
   Cpsit\T3hauler\Domain\Repository\ChangeRecordRepository:
     arguments:
       $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
+
+  Cpsit\T3hauler\Domain\Repository\MigrationFileRepository:
+    arguments:
+      $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
 
   # Change tracking services
   Cpsit\T3hauler\Service\ChangeTrackingService:

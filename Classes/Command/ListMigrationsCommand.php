@@ -7,8 +7,8 @@ namespace Cpsit\T3hauler\Command;
 use Cpsit\T3hauler\Command\Option\ListFormatOption;
 use Cpsit\T3hauler\Command\Option\PathOption;
 use Cpsit\T3hauler\Command\Option\StatusOption;
-use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Domain\Model\Migration;
+use Cpsit\T3hauler\Domain\Repository\MigrationFileRepository;
 use DWenzel\T3extensionTools\Command\OptionAwareInterface;
 use DWenzel\T3extensionTools\Traits\Command\ConfigureTrait;
 use DWenzel\T3extensionTools\Traits\Command\OptionAwareTrait;
@@ -17,7 +17,6 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Command to list all available migrations
@@ -45,7 +44,7 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
     protected static array $optionsToConfigure = self::OPTIONS;
 
     public function __construct(
-        private readonly T3HaulerConfiguration $configuration
+        private readonly MigrationFileRepository $migrationFileRepository
     ) {
         parent::__construct();
     }
@@ -69,7 +68,7 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
             // Filter by status if specified
             if ($statusFilter) {
                 $migrations = array_filter($migrations, function ($migration) use ($statusFilter) {
-                    return $migration['status'] === $statusFilter;
+                    return $migration['status']->value === $statusFilter;
                 });
             }
 
@@ -95,98 +94,32 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
      */
     private function findAllMigrations(?string $pathFilter = null): array
     {
-        $migrationPaths = $this->configuration->getMigrationPaths();
+        $allMigrations = $this->migrationFileRepository->findAll();
         $migrations = [];
 
-        if (empty($migrationPaths)) {
-            throw new \RuntimeException('No migration paths configured', 7950745142);
-        }
-
-        foreach ($migrationPaths as $migrationPath) {
+        foreach ($allMigrations as $migration) {
             // Skip if path filter is specified and doesn't match
-            if ($pathFilter && !str_contains($migrationPath, $pathFilter)) {
+            if ($pathFilter && !str_contains($migration['path'], $pathFilter)) {
                 continue;
             }
 
-            $absolutePath = GeneralUtility::getFileAbsFileName($migrationPath);
+            $metadata = $migration['data']['metadata'] ?? [];
+            $status = $this->migrationFileRepository->getMigrationStatus($migration['id']);
 
-            if (!is_dir($absolutePath)) {
-                continue;
-            }
-
-            $pathMigrations = $this->scanMigrationPath($absolutePath, $migrationPath);
-            $migrations = array_merge($migrations, $pathMigrations);
-        }
-
-        // Sort by migration ID (timestamp)
-        usort($migrations, function ($a, $b) {
-            return strcmp($a['id'], $b['id']);
-        });
-
-        return $migrations;
-    }
-
-    /**
-     * Scan a single migration path for migrations
-     */
-    private function scanMigrationPath(string $absolutePath, string $relativePath): array
-    {
-        $migrations = [];
-        $files = glob($absolutePath . '/*.json');
-
-        foreach ($files as $file) {
-            $filename = basename($file);
-
-            // Parse migration ID from filename (format: T3H_YYYYMMDDHHMMSS_hash.json)
-            if (!preg_match('/T3H_(\d{14})_(.{8})\.json/', $filename, $matches)) {
-                continue;
-            }
-
-            // @todo use file name minus 'json' as migration ID
-            $migrationId = $matches[1] . '_' . $matches[2];
-
-            try {
-                $migrationData = json_decode(file_get_contents($file), true);
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    continue;
-                }
-
-                $metadata = $migrationData['metadata'] ?? [];
-
-                $migrations[] = [
-                    'id' => $migrationId,
-                    'file' => $filename,
-                    'path' => $relativePath,
-                    'description' => $metadata['description'] ?? 'No description',
-                    'created' => $this->formatTimestamp($metadata['created_at']),
-                    'status' => $this->determineMigrationStatus($file, $migrationData),
-                    'tables' => isset($metadata['exported_tables']) ? count($metadata['exported_tables']) : 0,
-                    'records' => $metadata['total_records'] ?? 0,
-                    'format_version' => $metadata['format_version'] ?? 'unknown',
-                ];
-
-            } catch (\Exception $e) {
-                // Skip invalid migration files
-                continue;
-            }
+            $migrations[] = [
+                'id' => $migration['id'],
+                'file' => $migration['file'],
+                'path' => $migration['path'],
+                'description' => $metadata['description'] ?? 'No description',
+                'created' => $this->formatTimestamp($metadata['created_at'] ?? time()),
+                'status' => $status,
+                'tables' => isset($metadata['exported_tables']) ? count($metadata['exported_tables']) : 0,
+                'records' => $metadata['total_records'] ?? 0,
+                'format_version' => $metadata['format_version'] ?? 'unknown',
+            ];
         }
 
         return $migrations;
-    }
-
-    /**
-     * Determine migration status
-     */
-    private function determineMigrationStatus(string $file, array $migrationData): string
-    {
-        // Check if migration has been applied (this is a simplified check)
-        $appliedMarker = str_replace('.json', '.applied', $file);
-
-        if (file_exists($appliedMarker)) {
-            return 'applied';
-        }
-
-        return 'pending';
     }
 
     /**
@@ -214,7 +147,7 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
         $rows = [];
 
         foreach ($migrations as $migration) {
-            $status = $this->formatStatus($migration['status']);
+            $status = $migration['status']->getColoredStatus();
 
             $rows[] = [
                 $migration['id'],
@@ -243,7 +176,11 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
      */
     private function displaySummary(SymfonyStyle $io, array $migrations): void
     {
-        $statusCounts = array_count_values(array_column($migrations, 'status'));
+        $statusCounts = [];
+        foreach ($migrations as $migration) {
+            $statusValue = $migration['status']->value;
+            $statusCounts[$statusValue] = ($statusCounts[$statusValue] ?? 0) + 1;
+        }
         $totalRecords = array_sum(array_column($migrations, 'records'));
         $totalTables = array_sum(array_column($migrations, 'tables'));
 
@@ -267,25 +204,27 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
      */
     private function displayMigrationPaths(SymfonyStyle $io): void
     {
-        $migrationPaths = $this->configuration->getMigrationPaths();
+        $pathInfo = $this->migrationFileRepository->validatePaths();
 
         $io->section('Configured Migration Paths');
 
-        if (empty($migrationPaths)) {
+        if (empty($pathInfo)) {
             $io->text('No migration paths configured');
             return;
         }
 
         $pathRows = [];
-        foreach ($migrationPaths as $path) {
-            $absolutePath = GeneralUtility::getFileAbsFileName($path);
-            $exists = is_dir($absolutePath);
-            $status = $exists ? '✓ Exists' : '✗ Missing';
-
-            $pathRows[] = [$path, $absolutePath, $status];
+        foreach ($pathInfo as $info) {
+            $status = $info['exists'] ? '✓ Exists' : '✗ Missing';
+            $pathRows[] = [
+                $info['path'],
+                $info['absolute_path'],
+                $status,
+                $info['migration_count'],
+            ];
         }
 
-        $io->table(['Relative Path', 'Absolute Path', 'Status'], $pathRows);
+        $io->table(['Relative Path', 'Absolute Path', 'Status', 'Migrations'], $pathRows);
     }
 
     /**
@@ -296,18 +235,4 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
         return date('Y-m-d H:i:s', $timestamp);
     }
 
-    /**
-     * Format status with colors
-     */
-    private function formatStatus(string $status): string
-    {
-        return match ($status) {
-            'applied' => '<fg=green>applied</fg=green>',
-            'pending' => '<fg=yellow>pending</fg=yellow>',
-            'failed' => '<fg=red>failed</fg=red>',
-            'invalid' => '<fg=red>invalid</fg=red>',
-            'incomplete' => '<fg=red>incomplete</fg=red>',
-            default => $status,
-        };
-    }
 }
