@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with the T3Hauler TYPO3 extension.
+This file provides guidance to Claude Code (claude.ai/code) when working with the t3hauler TYPO3 extension.
 
 ## Project Information
 - **Package**: cpsit/t3hauler

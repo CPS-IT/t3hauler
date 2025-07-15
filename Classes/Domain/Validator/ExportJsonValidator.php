@@ -6,17 +6,22 @@ namespace Cpsit\T3hauler\Domain\Validator;
 
 use Cpsit\T3hauler\Domain\Dto\ExportValidationResult;
 use Cpsit\T3hauler\Domain\Enumeration\ExportValidationStatus;
+use Cpsit\T3hauler\Service\FilesystemInterface;
 use JsonSchema\Constraints\Constraint;
 use JsonSchema\Validator;
 
 /**
  * Validator for export JSON files
  *
- * Validates export JSON files against the T3Hauler export schema.
+ * Validates export JSON files against the t3hauler export schema.
  * Always uses the schema from Resources/Public/Spec/export.schema.json.
  */
 final readonly class ExportJsonValidator
 {
+    public function __construct(
+        private FilesystemInterface $filesystem
+    ) {}
+
     public const string MESSAGE_FILE_NOT_FOUND = 'Export file not found';
     public const string MESSAGE_FILE_EMPTY = 'Export file is empty';
     public const string MESSAGE_INVALID_JSON = 'Export file contains invalid JSON';
@@ -32,14 +37,14 @@ final readonly class ExportJsonValidator
      */
     public function validate(string $filePath): ExportValidationResult
     {
-        if (!file_exists($filePath)) {
+        if (!$this->filesystem->exists($filePath)) {
             return ExportValidationResult::invalid(
                 ExportValidationStatus::FILE_NOT_FOUND,
                 self::MESSAGE_FILE_NOT_FOUND . ': ' . $filePath
             );
         }
 
-        $content = file_get_contents($filePath);
+        $content = $this->filesystem->getFileContents($filePath);
         if ($content === false || $content === '') {
             return ExportValidationResult::invalid(
                 ExportValidationStatus::FILE_EMPTY,
@@ -70,7 +75,7 @@ final readonly class ExportJsonValidator
 
         return ExportValidationResult::valid(
             self::MESSAGE_VALIDATION_SUCCESS,
-            filesize($filePath) ?: 0,
+            $this->filesystem->getFileSize($filePath) ?: 0,
             $recordCount,
             'json',
             $metadata
@@ -82,14 +87,14 @@ final readonly class ExportJsonValidator
      */
     private function validateWithSchema(mixed $data): ExportValidationResult
     {
-        if (!file_exists(self::SCHEMA_PATH)) {
+        if (!$this->filesystem->exists(self::SCHEMA_PATH)) {
             return ExportValidationResult::invalid(
                 ExportValidationStatus::INVALID_STRUCTURE,
                 self::MESSAGE_SCHEMA_NOT_FOUND . ': ' . self::SCHEMA_PATH
             );
         }
 
-        $schemaContent = file_get_contents(self::SCHEMA_PATH);
+        $schemaContent = $this->filesystem->getFileContents(self::SCHEMA_PATH);
         if ($schemaContent === false) {
             return ExportValidationResult::invalid(
                 ExportValidationStatus::INVALID_STRUCTURE,

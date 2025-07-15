@@ -7,7 +7,7 @@ namespace Cpsit\T3hauler\Domain\Model;
 use Cpsit\T3hauler\Domain\Enumeration\MigrationStatus;
 
 /**
- * Domain model for T3Hauler migrations
+ * Domain model for t3hauler migrations
  *
  * Represents a migration set with metadata and data files
  */

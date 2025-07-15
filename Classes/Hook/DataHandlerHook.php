@@ -13,7 +13,7 @@ use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
- * DataHandler hook to detect record changes and track them for T3Hauler migrations
+ * DataHandler hook to detect record changes and track them for t3hauler migrations
  */
 class DataHandlerHook implements SingletonInterface
 {

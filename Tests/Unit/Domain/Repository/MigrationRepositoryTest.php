@@ -6,12 +6,15 @@ namespace Cpsit\T3hauler\Tests\Unit\Domain\Repository;
 
 use Cpsit\T3hauler\Domain\Model\Migration;
 use Cpsit\T3hauler\Domain\Repository\MigrationRepository;
+use Doctrine\DBAL\Result;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
+use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 
 /**
  * Unit tests for MigrationRepository
@@ -396,6 +399,760 @@ final class MigrationRepositoryTest extends TestCase
         $result = $this->subject->save($migration);
 
         self::assertEquals(42, $result->getUid());
+    }
+
+    #[Test]
+    public function findByMigrationIdReturnsNullWhenNotFound(): void
+    {
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAssociative')
+            ->willReturn(false);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $migration = $this->subject->findByMigrationId('nonexistent-id');
+
+        self::assertNull($migration);
+    }
+
+    #[Test]
+    public function findByMigrationIdReturnsMigrationWhenFound(): void
+    {
+        $migrationData = [
+            'uid' => 123,
+            'migration_id' => 'test-id',
+            'name' => 'Test Migration',
+            'description' => 'Test Description',
+            'author' => 'Test Author',
+            'source_hash' => 'abc123',
+            'data_file' => '/path/to/data.json',
+            'status' => 'pending',
+            'created_at' => time(),
+            'updated_at' => time(),
+            'metadata' => '{}',
+        ];
+
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAssociative')
+            ->willReturn($migrationData);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $migration = $this->subject->findByMigrationId('test-id');
+
+        self::assertInstanceOf(Migration::class, $migration);
+        self::assertEquals('test-id', $migration->getMigrationId());
+        self::assertEquals('Test Migration', $migration->getName());
+    }
+
+    #[Test]
+    public function findByUidReturnsNullWhenNotFound(): void
+    {
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAssociative')
+            ->willReturn(false);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $migration = $this->subject->findByUid(999);
+
+        self::assertNull($migration);
+    }
+
+    #[Test]
+    public function findByUidReturnsMigrationWhenFound(): void
+    {
+        $migrationData = [
+            'uid' => 123,
+            'migration_id' => 'test-id',
+            'name' => 'Test Migration',
+            'description' => 'Test Description',
+            'author' => 'Test Author',
+            'source_hash' => 'abc123',
+            'data_file' => '/path/to/data.json',
+            'status' => 'pending',
+            'created_at' => time(),
+            'updated_at' => time(),
+            'metadata' => '{}',
+        ];
+
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAssociative')
+            ->willReturn($migrationData);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $migration = $this->subject->findByUid(123);
+
+        self::assertInstanceOf(Migration::class, $migration);
+        self::assertEquals(123, $migration->getUid());
+        self::assertEquals('test-id', $migration->getMigrationId());
+    }
+
+    #[Test]
+    public function findAllReturnsEmptyArrayWhenNoMigrations(): void
+    {
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('orderBy')
+            ->with('created_at', 'DESC')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAllAssociative')
+            ->willReturn([]);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $migrations = $this->subject->findAll();
+
+        self::assertEmpty($migrations);
+    }
+
+    #[Test]
+    public function findAllReturnsMigrationsArray(): void
+    {
+        $migrationData = [
+            [
+                'uid' => 123,
+                'migration_id' => 'test-id-1',
+                'name' => 'Test Migration 1',
+                'description' => 'Test Description 1',
+                'author' => 'Test Author',
+                'source_hash' => 'abc123',
+                'data_file' => '/path/to/data1.json',
+                'status' => 'pending',
+                'created_at' => time(),
+                'updated_at' => time(),
+                'metadata' => '{}',
+            ],
+            [
+                'uid' => 124,
+                'migration_id' => 'test-id-2',
+                'name' => 'Test Migration 2',
+                'description' => 'Test Description 2',
+                'author' => 'Test Author',
+                'source_hash' => 'def456',
+                'data_file' => '/path/to/data2.json',
+                'status' => 'applied',
+                'created_at' => time(),
+                'updated_at' => time(),
+                'metadata' => '{}',
+            ],
+        ];
+
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('orderBy')
+            ->with('created_at', 'DESC')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAllAssociative')
+            ->willReturn($migrationData);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $migrations = $this->subject->findAll();
+
+        self::assertCount(2, $migrations);
+        self::assertContainsOnlyInstancesOf(Migration::class, $migrations);
+        self::assertEquals('test-id-1', $migrations[0]->getMigrationId());
+        self::assertEquals('test-id-2', $migrations[1]->getMigrationId());
+    }
+
+    #[Test]
+    public function findAllAcceptsCustomOrderingParameters(): void
+    {
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('orderBy')
+            ->with('name', 'ASC')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAllAssociative')
+            ->willReturn([]);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $this->subject->findAll('name', 'ASC');
+    }
+
+    #[Test]
+    public function findByStatusReturnsFilteredMigrations(): void
+    {
+        $migrationData = [
+            [
+                'uid' => 123,
+                'migration_id' => 'test-id',
+                'name' => 'Test Migration',
+                'description' => 'Test Description',
+                'author' => 'Test Author',
+                'source_hash' => 'abc123',
+                'data_file' => '/path/to/data.json',
+                'status' => 'pending',
+                'created_at' => time(),
+                'updated_at' => time(),
+                'metadata' => '{}',
+            ],
+        ];
+
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('orderBy')
+            ->with('created_at', 'DESC')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAllAssociative')
+            ->willReturn($migrationData);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $migrations = $this->subject->findByStatus('pending');
+
+        self::assertCount(1, $migrations);
+        self::assertContainsOnlyInstancesOf(Migration::class, $migrations);
+        self::assertEquals('pending', $migrations[0]->getStatus());
+    }
+
+    #[Test]
+    public function findPendingCallsFindByStatusWithPendingStatus(): void
+    {
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->method('select')->willReturnSelf();
+        $queryBuilder->method('from')->willReturnSelf();
+        $queryBuilder->method('where')->willReturnSelf();
+        $queryBuilder->method('orderBy')->willReturnSelf();
+        $queryBuilder->method('executeQuery')->willReturn($result);
+        $result->method('fetchAllAssociative')->willReturn([]);
+
+        $this->connectionMock->method('createQueryBuilder')->willReturn($queryBuilder);
+
+        $migrations = $this->subject->findPending();
+
+        self::assertEmpty($migrations);
+    }
+
+    #[Test]
+    public function findAppliedCallsFindByStatusWithAppliedStatus(): void
+    {
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->method('select')->willReturnSelf();
+        $queryBuilder->method('from')->willReturnSelf();
+        $queryBuilder->method('where')->willReturnSelf();
+        $queryBuilder->method('orderBy')->willReturnSelf();
+        $queryBuilder->method('executeQuery')->willReturn($result);
+        $result->method('fetchAllAssociative')->willReturn([]);
+
+        $this->connectionMock->method('createQueryBuilder')->willReturn($queryBuilder);
+
+        $migrations = $this->subject->findApplied();
+
+        self::assertEmpty($migrations);
+    }
+
+    #[Test]
+    public function findFailedCallsFindByStatusWithFailedStatus(): void
+    {
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->method('select')->willReturnSelf();
+        $queryBuilder->method('from')->willReturnSelf();
+        $queryBuilder->method('where')->willReturnSelf();
+        $queryBuilder->method('orderBy')->willReturnSelf();
+        $queryBuilder->method('executeQuery')->willReturn($result);
+        $result->method('fetchAllAssociative')->willReturn([]);
+
+        $this->connectionMock->method('createQueryBuilder')->willReturn($queryBuilder);
+
+        $migrations = $this->subject->findFailed();
+
+        self::assertEmpty($migrations);
+    }
+
+    #[Test]
+    public function findLatestReturnsNullWhenNoMigrations(): void
+    {
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('orderBy')
+            ->with('created_at', 'DESC')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('setMaxResults')
+            ->with(1)
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAssociative')
+            ->willReturn(false);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $migration = $this->subject->findLatest();
+
+        self::assertNull($migration);
+    }
+
+    #[Test]
+    public function findLatestReturnsLatestMigration(): void
+    {
+        $migrationData = [
+            'uid' => 123,
+            'migration_id' => 'latest-id',
+            'name' => 'Latest Migration',
+            'description' => 'Latest Description',
+            'author' => 'Test Author',
+            'source_hash' => 'abc123',
+            'data_file' => '/path/to/data.json',
+            'status' => 'applied',
+            'created_at' => time(),
+            'updated_at' => time(),
+            'metadata' => '{}',
+        ];
+
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('orderBy')
+            ->with('created_at', 'DESC')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('setMaxResults')
+            ->with(1)
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAssociative')
+            ->willReturn($migrationData);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $migration = $this->subject->findLatest();
+
+        self::assertInstanceOf(Migration::class, $migration);
+        self::assertEquals('latest-id', $migration->getMigrationId());
+    }
+
+    #[Test]
+    public function existsReturnsFalseWhenMigrationNotFound(): void
+    {
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->expects(self::once())
+            ->method('count')
+            ->with('uid')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchOne')
+            ->willReturn(0);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $exists = $this->subject->exists('nonexistent-id');
+
+        self::assertFalse($exists);
+    }
+
+    #[Test]
+    public function existsReturnsTrueWhenMigrationFound(): void
+    {
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->expects(self::once())
+            ->method('count')
+            ->with('uid')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchOne')
+            ->willReturn(1);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $exists = $this->subject->exists('existing-id');
+
+        self::assertTrue($exists);
+    }
+
+    #[Test]
+    public function countByStatusReturnsCount(): void
+    {
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->expects(self::once())
+            ->method('count')
+            ->with('uid')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchOne')
+            ->willReturn(5);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $count = $this->subject->countByStatus('pending');
+
+        self::assertEquals(5, $count);
+    }
+
+    #[Test]
+    public function countReturnsTotal(): void
+    {
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->expects(self::once())
+            ->method('count')
+            ->with('uid')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchOne')
+            ->willReturn(10);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $count = $this->subject->count();
+
+        self::assertEquals(10, $count);
+    }
+
+    #[Test]
+    public function getSummaryReturnsStatistics(): void
+    {
+        $queryBuilder = $this->createQueryBuilderMock();
+        $result = $this->createMock(Result::class);
+
+        $queryBuilder->method('count')->willReturnSelf();
+        $queryBuilder->method('from')->willReturnSelf();
+        $queryBuilder->method('where')->willReturnSelf();
+        $queryBuilder->method('executeQuery')->willReturn($result);
+        $result->method('fetchOne')->willReturnOnConsecutiveCalls(20, 5, 10, 3, 2);
+
+        $this->connectionMock->method('createQueryBuilder')->willReturn($queryBuilder);
+
+        $summary = $this->subject->getSummary();
+
+        self::assertArrayHasKey('total', $summary);
+        self::assertArrayHasKey('total', $summary);
+        self::assertArrayHasKey('pending', $summary);
+        self::assertArrayHasKey('applied', $summary);
+        self::assertArrayHasKey('failed', $summary);
+        self::assertArrayHasKey('rolled_back', $summary);
+    }
+
+    #[Test]
+    public function deleteOlderThanDeletesOldMigrations(): void
+    {
+        $date = new \DateTime('2023-01-01');
+        $queryBuilder = $this->createQueryBuilderMock();
+
+        $queryBuilder->expects(self::once())
+            ->method('delete')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeStatement')
+            ->willReturn(3);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $deletedCount = $this->subject->deleteOlderThan($date);
+
+        self::assertEquals(3, $deletedCount);
+    }
+
+    private function createQueryBuilderMock(): QueryBuilder&MockObject
+    {
+        $queryBuilder = $this->createMock(QueryBuilder::class);
+        $expressionBuilder = $this->createMock(ExpressionBuilder::class);
+
+        $queryBuilder->method('expr')->willReturn($expressionBuilder);
+        $expressionBuilder->method('eq')->willReturn('expr');
+        $expressionBuilder->method('lt')->willReturn('expr');
+        $queryBuilder->method('createNamedParameter')->willReturn('param');
+
+        return $queryBuilder;
     }
 
     private function createMigration(): Migration

@@ -26,17 +26,21 @@ services:
       $migrationRepository: '@Cpsit\T3hauler\Domain\Repository\MigrationRepository'
       $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
       $hashUtility: '@Cpsit\T3hauler\Utility\HashUtility'
+      $filesystem: '@Cpsit\T3hauler\Service\FilesystemInterface'
 
   Cpsit\T3hauler\Service\ExportService:
     arguments:
       $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
       $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
+      $dataSnapshotRepository: '@Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository'
+      $filesystem: '@Cpsit\T3hauler\Service\FilesystemInterface'
 
   Cpsit\T3hauler\Service\ImportService:
     public: true
     arguments:
       $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
       $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
+      $filesystem: '@Cpsit\T3hauler\Service\FilesystemInterface'
 
   Cpsit\T3hauler\Service\IntegrityService:
     arguments:
@@ -86,6 +90,16 @@ services:
   Cpsit\T3hauler\Command\CreateSnapshotCommand:
     arguments:
       $changeDetectionService: '@Cpsit\T3hauler\Service\ChangeDetectionService'
+
+  Cpsit\T3hauler\Command\CreateMigrationCommand:
+    arguments:
+      $migrationService: '@Cpsit\T3hauler\Service\MigrationService'
+      $filesystem: '@Cpsit\T3hauler\Service\FilesystemInterface'
+
+  # Validators
+  Cpsit\T3hauler\Domain\Validator\ExportJsonValidator:
+    arguments:
+      $filesystem: '@Cpsit\T3hauler\Service\FilesystemInterface'
 
   # Utilites
   Cpsit\T3hauler\Utility\HashUtility:

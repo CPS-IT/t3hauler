@@ -1,6 +1,6 @@
-# T3Hauler Export Format
+# t3hauler Export Format
 
-T3Hauler uses a custom structured export format to handle TYPO3 data exports with relation dependency resolution.
+t3hauler uses a custom structured export format to handle TYPO3 data exports with relation dependency resolution.
 
 ## Supported Formats
 

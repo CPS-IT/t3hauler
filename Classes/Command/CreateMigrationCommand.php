@@ -8,6 +8,7 @@ use Cpsit\T3hauler\Command\Argument\DescriptionArgument;
 use Cpsit\T3hauler\Command\Option\AuthorOption;
 use Cpsit\T3hauler\Command\Option\DryRunOption;
 use Cpsit\T3hauler\Command\Option\SiteOption;
+use Cpsit\T3hauler\Service\FilesystemInterface;
 use Cpsit\T3hauler\Service\MigrationService;
 use DWenzel\T3extensionTools\Command\ArgumentAwareInterface;
 use DWenzel\T3extensionTools\Command\OptionAwareInterface;
@@ -53,7 +54,8 @@ class CreateMigrationCommand extends Command implements ArgumentAwareInterface, 
     protected static array $optionsToConfigure = self::OPTIONS;
 
     public function __construct(
-        private readonly MigrationService $migrationService
+        private readonly MigrationService $migrationService,
+        private readonly FilesystemInterface $filesystem
     ) {
         parent::__construct();
     }
@@ -66,7 +68,7 @@ class CreateMigrationCommand extends Command implements ArgumentAwareInterface, 
         $site = $input->getOption(SiteOption::NAME);
         $dryRun = $input->getOption(DryRunOption::NAME);
 
-        $io->title('T3Hauler - Create Migration');
+        $io->title('t3hauler - Create Migration');
 
         try {
             // Create migration using the service
@@ -172,11 +174,11 @@ class CreateMigrationCommand extends Command implements ArgumentAwareInterface, 
 
     private function formatFileSize(string $filePath): string
     {
-        if (!file_exists($filePath)) {
+        if (!$this->filesystem->exists($filePath)) {
             return 'N/A';
         }
 
-        $size = filesize($filePath);
+        $size = $this->filesystem->getFileSize($filePath);
         $units = ['B', 'KB', 'MB', 'GB'];
 
         for ($i = 0; $size >= 1024 && $i < count($units) - 1; $i++) {

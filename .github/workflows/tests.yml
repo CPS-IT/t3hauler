@@ -86,10 +86,29 @@ jobs:
 
       - name: Run unit tests with coverage
         run: |
-          XDEBUG_MODE=coverage composer test:unit --coverage-clover=coverage.xml
+          XDEBUG_MODE=coverage composer test:coverage-unit
 
-      - name: Upload coverage to Codecov
+      - name: Run functional tests with coverage
+        run: |
+          XDEBUG_MODE=coverage composer test:coverage-functional
+
+      - name: Merge coverage reports
+        run: |
+          php Tests/Scripts/merge-coverage.php
+
+      - name: Upload merged coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          file: ./coverage.xml
+          file: ./.build/log/coverage/merged/clover.xml
           fail_ci_if_error: false
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            .build/log/coverage/merged/html/
+            .build/log/coverage/merged/clover.xml
+            .build/log/coverage/merged/cobertura.xml
+            .build/log/coverage/merged/junit.xml
+          retention-days: 30

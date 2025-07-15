@@ -6,10 +6,10 @@ namespace Cpsit\T3hauler\Tests\Unit\Domain\Validator;
 
 use Cpsit\T3hauler\Domain\Enumeration\ExportValidationStatus;
 use Cpsit\T3hauler\Domain\Validator\ExportJsonValidator;
-use org\bovigo\vfs\vfsStream;
-use org\bovigo\vfs\vfsStreamDirectory;
+use Cpsit\T3hauler\Service\FilesystemInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -18,20 +18,28 @@ use PHPUnit\Framework\TestCase;
 final class ExportJsonValidatorTest extends TestCase
 {
     private ExportJsonValidator $subject;
-    private vfsStreamDirectory $vfsRoot; // @phpstan-ignore-line
+    private MockObject&FilesystemInterface $filesystem;
+    private string $schemaPath;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->subject = new ExportJsonValidator();
-        $this->vfsRoot = vfsStream::setup('test');
+        $this->filesystem = $this->createMock(FilesystemInterface::class);
+        $this->subject = new ExportJsonValidator($this->filesystem);
+        $this->schemaPath = '/Users/d.wenzel/projekt/zug13/app/vendor/cpsit/t3hauler/Classes/Domain/Validator/../../../Resources/Public/Spec/export.schema.json';
     }
 
     #[Test]
     public function validateReturnsFileNotFoundForNonExistentFile(): void
     {
-        $result = $this->subject->validate(vfsStream::url('test/nonexistent.json'));
+        $filePath = '/path/to/nonexistent.json';
+        $this->filesystem->expects(self::once())
+            ->method('exists')
+            ->with($filePath)
+            ->willReturn(false);
+
+        $result = $this->subject->validate($filePath);
 
         self::assertFalse($result->isValid());
         self::assertEquals(ExportValidationStatus::FILE_NOT_FOUND, $result->status);
@@ -41,8 +49,15 @@ final class ExportJsonValidatorTest extends TestCase
     #[Test]
     public function validateReturnsFileEmptyForEmptyFile(): void
     {
-        $filePath = vfsStream::url('test/empty.json');
-        file_put_contents($filePath, '');
+        $filePath = '/path/to/empty.json';
+        $this->filesystem->expects(self::once())
+            ->method('exists')
+            ->with($filePath)
+            ->willReturn(true);
+        $this->filesystem->expects(self::once())
+            ->method('getFileContents')
+            ->with($filePath)
+            ->willReturn('');
 
         $result = $this->subject->validate($filePath);
 
@@ -54,8 +69,15 @@ final class ExportJsonValidatorTest extends TestCase
     #[Test]
     public function validateReturnsInvalidJsonForMalformedJson(): void
     {
-        $filePath = vfsStream::url('test/invalid.json');
-        file_put_contents($filePath, '{invalid json');
+        $filePath = '/path/to/invalid.json';
+        $this->filesystem->expects(self::once())
+            ->method('exists')
+            ->with($filePath)
+            ->willReturn(true);
+        $this->filesystem->expects(self::once())
+            ->method('getFileContents')
+            ->with($filePath)
+            ->willReturn('{invalid json');
 
         $result = $this->subject->validate($filePath);
 
@@ -67,8 +89,10 @@ final class ExportJsonValidatorTest extends TestCase
     #[Test]
     public function validateReturnsInvalidStructureForNonObjectRoot(): void
     {
-        $filePath = vfsStream::url('test/array.json');
-        file_put_contents($filePath, '["not", "an", "object"]');
+        $filePath = '/path/to/array.json';
+        $content = '["not", "an", "object"]';
+
+        $this->setupFilesystemMock($filePath, $content);
 
         $result = $this->subject->validate($filePath);
 
@@ -81,8 +105,10 @@ final class ExportJsonValidatorTest extends TestCase
     public function validateReturnsInvalidStructureForMissingRequiredFields(): void
     {
         $data = ['metadata' => [], 'records' => []]; // missing relations
-        $filePath = vfsStream::url('test/missing_relations.json');
-        file_put_contents($filePath, json_encode($data));
+        $filePath = '/path/to/missing_relations.json';
+        $content = json_encode($data);
+
+        $this->setupFilesystemMock($filePath, $content);
 
         $result = $this->subject->validate($filePath);
 
@@ -105,8 +131,10 @@ final class ExportJsonValidatorTest extends TestCase
             'relations' => [],
         ];
 
-        $filePath = vfsStream::url('test/valid_minimal.json');
-        file_put_contents($filePath, json_encode($data));
+        $filePath = '/path/to/valid_minimal.json';
+        $content = json_encode($data);
+
+        $this->setupFilesystemMock($filePath, $content, true);
 
         $result = $this->subject->validate($filePath);
 
@@ -167,8 +195,10 @@ final class ExportJsonValidatorTest extends TestCase
             ],
         ];
 
-        $filePath = vfsStream::url('test/valid_with_records.json');
-        file_put_contents($filePath, json_encode($data));
+        $filePath = '/path/to/valid_with_records.json';
+        $content = json_encode($data);
+
+        $this->setupFilesystemMock($filePath, $content, true);
 
         $result = $this->subject->validate($filePath);
 
@@ -219,8 +249,10 @@ final class ExportJsonValidatorTest extends TestCase
     #[DataProvider('invalidMetadataProvider')]
     public function validateRejectsInvalidMetadata(array $data, string $expectedMessage): void
     {
-        $filePath = vfsStream::url('test/invalid_metadata.json');
-        file_put_contents($filePath, json_encode($data));
+        $filePath = '/path/to/invalid_metadata.json';
+        $content = json_encode($data);
+
+        $this->setupFilesystemMock($filePath, $content);
 
         $result = $this->subject->validate($filePath);
 
@@ -266,8 +298,10 @@ final class ExportJsonValidatorTest extends TestCase
     #[DataProvider('invalidRecordsProvider')]
     public function validateRejectsInvalidRecords(array $data, string $expectedMessage): void
     {
-        $filePath = vfsStream::url('test/invalid_records.json');
-        file_put_contents($filePath, json_encode($data));
+        $filePath = '/path/to/invalid_records.json';
+        $content = json_encode($data);
+
+        $this->setupFilesystemMock($filePath, $content);
 
         $result = $this->subject->validate($filePath);
 
@@ -297,8 +331,10 @@ final class ExportJsonValidatorTest extends TestCase
     #[DataProvider('invalidRelationsProvider')]
     public function validateRejectsInvalidRelations(array $data, string $expectedMessage): void
     {
-        $filePath = vfsStream::url('test/invalid_relations.json');
-        file_put_contents($filePath, json_encode($data));
+        $filePath = '/path/to/invalid_relations.json';
+        $content = json_encode($data);
+
+        $this->setupFilesystemMock($filePath, $content);
 
         $result = $this->subject->validate($filePath);
 
@@ -339,8 +375,10 @@ final class ExportJsonValidatorTest extends TestCase
             'relations' => [],
         ];
 
-        $filePath = vfsStream::url('test/count_test.json');
-        file_put_contents($filePath, json_encode($data));
+        $filePath = '/path/to/count_test.json';
+        $content = json_encode($data);
+
+        $this->setupFilesystemMock($filePath, $content, true);
 
         $result = $this->subject->validate($filePath);
 
@@ -387,8 +425,10 @@ final class ExportJsonValidatorTest extends TestCase
             'relations' => [],
         ];
 
-        $filePath = vfsStream::url('test/complex_valid.json');
-        file_put_contents($filePath, json_encode($data));
+        $filePath = '/path/to/complex_valid.json';
+        $content = json_encode($data);
+
+        $this->setupFilesystemMock($filePath, $content, true);
 
         $result = $this->subject->validate($filePath);
 
@@ -438,8 +478,10 @@ final class ExportJsonValidatorTest extends TestCase
             'relations' => [],
         ];
 
-        $filePath = vfsStream::url('test/valid_record_id.json');
-        file_put_contents($filePath, json_encode($data));
+        $filePath = '/path/to/valid_record_id.json';
+        $content = json_encode($data);
+
+        $this->setupFilesystemMock($filePath, $content, true);
 
         $result = $this->subject->validate($filePath);
 
@@ -463,13 +505,43 @@ final class ExportJsonValidatorTest extends TestCase
             'relations' => [],
         ];
 
-        $filePath = vfsStream::url('test/empty_data.json');
-        file_put_contents($filePath, json_encode($data));
+        $filePath = '/path/to/empty_data.json';
+        $content = json_encode($data);
+
+        $this->setupFilesystemMock($filePath, $content, true);
 
         $result = $this->subject->validate($filePath);
 
         self::assertTrue($result->isValid());
         self::assertEquals(0, $result->recordCount);
         self::assertEquals($data['metadata'], $result->metadata);
+    }
+
+    private function setupFilesystemMock(string $filePath, string $content, bool $includeFileSize = false): void
+    {
+        $this->filesystem->expects(self::exactly(2))
+            ->method('exists')
+            ->willReturnCallback(function (string $path) use ($filePath): bool {
+                return $path === $filePath || $path === $this->schemaPath;
+            });
+
+        $this->filesystem->expects(self::exactly(2))
+            ->method('getFileContents')
+            ->willReturnCallback(function (string $path) use ($filePath, $content): string {
+                if ($path === $filePath) {
+                    return $content;
+                }
+                if ($path === $this->schemaPath) {
+                    return file_get_contents($this->schemaPath);
+                }
+                return '';
+            });
+
+        if ($includeFileSize) {
+            $this->filesystem->expects(self::once())
+                ->method('getFileSize')
+                ->with($filePath)
+                ->willReturn(strlen($content));
+        }
     }
 }

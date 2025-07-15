@@ -11,7 +11,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
- * Trait with testing utilities for T3Hauler functional tests
+ * Trait with testing utilities for t3hauler functional tests
  */
 trait TestingUtilities
 {
@@ -37,7 +37,7 @@ trait TestingUtilities
     }
 
     /**
-     * Clean up T3Hauler specific tables
+     * Clean up t3hauler specific tables
      */
     protected function cleanupDatabase(): void
     {
@@ -136,7 +136,7 @@ trait TestingUtilities
     }
 
     /**
-     * Setup method for T3Hauler tests
+     * Setup method for t3hauler tests
      */
     protected function setUpT3HaulerTests(): void
     {

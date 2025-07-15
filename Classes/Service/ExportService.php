@@ -48,6 +48,7 @@ readonly class ExportService
         private T3HaulerConfiguration $configuration,
         private ConnectionPool $connectionPool,
         private DataSnapshotRepository $dataSnapshotRepository,
+        private FilesystemInterface $filesystem,
     ) {}
 
     /**
@@ -97,14 +98,14 @@ readonly class ExportService
 
             // Save to file
             $outputDir = dirname($outputPath);
-            if (!is_dir($outputDir) && !mkdir($outputDir, 0755, true)) {
+            if (!$this->filesystem->isDirectory($outputDir) && !mkdir($outputDir, 0755, true)) {
                 return ExportResult::failure(
                     ExportStatus::DIRECTORY_CREATION_FAILED,
                     self::MESSAGE_DIRECTORY_CREATION_FAILED . ': ' . $outputDir
                 );
             }
 
-            if (file_put_contents($outputPath, $exportData) === false) {
+            if ($this->filesystem->putFileContents($outputPath, $exportData) === false) {
                 return ExportResult::failure(
                     ExportStatus::FILE_WRITE_FAILED,
                     self::MESSAGE_FILE_WRITE_FAILED . ': ' . $outputPath
@@ -116,7 +117,7 @@ readonly class ExportService
                 recordCount: $totalRecords,
                 exportedTables: $exportedTables,
                 filePath: $outputPath,
-                fileSize: filesize($outputPath) ?: 0,
+                fileSize: $this->filesystem->getFileSize($outputPath) ?: 0,
                 format: self::DEFAULT_FORMAT,
                 metadata: $export->getMetadata()
             );
@@ -318,14 +319,14 @@ readonly class ExportService
      */
     public function validateExportFile(string $filePath): ExportValidationResult
     {
-        if (!file_exists($filePath)) {
+        if (!$this->filesystem->exists($filePath)) {
             return ExportValidationResult::invalid(
                 ExportValidationStatus::FILE_NOT_FOUND,
                 self::MESSAGE_FILE_NOT_FOUND . ': ' . $filePath
             );
         }
 
-        $content = file_get_contents($filePath);
+        $content = $this->filesystem->getFileContents($filePath);
         if (empty($content)) {
             return ExportValidationResult::invalid(
                 ExportValidationStatus::FILE_EMPTY,
@@ -345,7 +346,7 @@ readonly class ExportService
 
             return ExportValidationResult::valid(
                 message: self::MESSAGE_FILE_VALID,
-                fileSize: filesize($filePath) ?: 0,
+                fileSize: $this->filesystem->getFileSize($filePath) ?: 0,
                 recordCount: $data['metadata']['total_records'] ?? 0,
                 format: self::DEFAULT_FORMAT,
                 metadata: $data['metadata']

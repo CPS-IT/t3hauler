@@ -202,56 +202,6 @@ class MigrationFile
     }
 
     /**
-     * Check if migration file exists on filesystem
-     */
-    public function exists(): bool
-    {
-        return file_exists($this->absolutePath);
-    }
-
-    /**
-     * Get file size in bytes
-     */
-    public function getSize(): int
-    {
-        return $this->exists() ? filesize($this->absolutePath) : 0;
-    }
-
-    /**
-     * Get human-readable file size
-     */
-    public function getFormattedSize(): string
-    {
-        $size = $this->getSize();
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $unitIndex = 0;
-
-        while ($size >= 1024 && $unitIndex < count($units) - 1) {
-            $size /= 1024;
-            $unitIndex++;
-        }
-
-        return round($size, 2) . ' ' . $units[$unitIndex];
-    }
-
-    /**
-     * Get file modification time
-     */
-    public function getModifiedAt(): int
-    {
-        return $this->exists() ? filemtime($this->absolutePath) : 0;
-    }
-
-    /**
-     * Get file modification time as formatted string
-     */
-    public function getModifiedAtFormatted(): string
-    {
-        $timestamp = $this->getModifiedAt();
-        return $timestamp > 0 ? date('Y-m-d H:i:s', $timestamp) : 'Unknown';
-    }
-
-    /**
      * Get records for a specific table
      */
     public function getRecordsForTable(string $tableName): array
@@ -302,8 +252,6 @@ class MigrationFile
             'format_version' => $this->getFormatVersion(),
             'total_tables' => $this->getTableCount(),
             'total_records' => $this->getRecordCount(),
-            'file_size' => $this->getFormattedSize(),
-            'modified_at' => $this->getModifiedAtFormatted(),
             'tables_with_records' => $tablesWithRecords,
             'record_counts' => $recordCounts,
             'valid' => $this->isValid(),

@@ -59,7 +59,8 @@
   "scripts": {
     "post-autoload-dump": [
       "mkdir -p .build/log/coverage/unit/",
-      "mkdir -p .build/log/coverage/functional/"
+      "mkdir -p .build/log/coverage/functional/",
+      "mkdir -p .build/log/coverage/merged/"
     ],
     "fix": [
       "@fix:composer",
@@ -96,6 +97,20 @@
       "@test:unit",
       "@test:functional"
     ],
+    "test:coverage": [
+      "@setup-test-env",
+      "php Tests/Scripts/run-merged-tests.php"
+    ],
+    "test:coverage-functional": [
+      "@setup-test-env",
+      "XDEBUG_MODE=coverage phpunit -c phpunit.functional.xml"
+    ],
+    "test:coverage-merge": [
+      "@test:coverage-unit",
+      "@test:coverage-functional",
+      "php Tests/Scripts/merge-coverage.php"
+    ],
+    "test:coverage-unit": "XDEBUG_MODE=coverage phpunit -c phpunit.unit.xml",
     "test:functional": [
       "@setup-test-env",
       "phpunit -c phpunit.functional.xml"
@@ -119,6 +134,10 @@
     "sca:php": "Analyze all PHP files by using PHPStan",
     "setup-test-env": "Set up TYPO3 test environment for functional tests",
     "test": "Run all configured test suites",
+    "test:coverage": "Run all tests with merged coverage reports (HTML, Clover, Cobertura, JUnit)",
+    "test:coverage-functional": "Run functional tests with coverage reports",
+    "test:coverage-merge": "Run unit and functional tests separately, then merge coverage reports",
+    "test:coverage-unit": "Run unit tests with coverage reports",
     "test:functional": "Run functional tests for the extension",
     "test:unit": "Run unit tests for the extension"
   }

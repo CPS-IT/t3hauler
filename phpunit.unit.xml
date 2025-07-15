@@ -28,10 +28,11 @@
         <report>
             <html outputDirectory=".build/log/coverage/unit/html/"/>
             <text outputFile="php://stdout" showUncoveredFiles="true" showOnlySummary="false"/>
-            <clover outputFile=".build/log/coverage/unit/clover/clover.xml"/>
+            <clover outputFile=".build/log/coverage/unit/clover.xml"/>
+            <php outputFile=".build/log/coverage/unit/coverage.php"/>
         </report>
     </coverage>
     <logging>
-        <junit outputFile=".build/log/coverage/junit/junit.xml"/>
+        <junit outputFile=".build/log/coverage/unit/junit.xml"/>
     </logging>
 </phpunit>

@@ -8,6 +8,7 @@ use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Domain\Model\DataSnapshot;
 use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
 use Cpsit\T3hauler\Service\ExportService;
+use Cpsit\T3hauler\Service\FilesystemAdapter;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
@@ -53,7 +54,8 @@ final class ExportServiceTest extends FunctionalTestCase
         $this->subject = new ExportService(
             $this->configuration,
             $this->connectionPool,
-            $this->dataSnapshotRepository
+            $this->dataSnapshotRepository,
+            new FilesystemAdapter()
         );
 
         // Set up test database and data
@@ -191,7 +193,8 @@ final class ExportServiceTest extends FunctionalTestCase
         $exportService = new ExportService(
             $configurationWithExclusions,
             $this->connectionPool,
-            $this->dataSnapshotRepository
+            $this->dataSnapshotRepository,
+            new FilesystemAdapter()
         );
 
         $changedTables = ['pages'];

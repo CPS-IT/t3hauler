@@ -59,7 +59,7 @@ final class DataHandlerIntegrationTest extends FunctionalTestCase
         // Create a current snapshot for change tracking
         $this->createCurrentSnapshot();
 
-        // Configure T3Hauler to track pages and tt_content
+        // Configure t3hauler to track pages and tt_content
         $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['t3hauler']['detection']['enabledTables'] = ['pages', 'tt_content'];
     }
 

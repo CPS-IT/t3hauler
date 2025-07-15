@@ -460,6 +460,545 @@ final class DataSnapshotRepositoryTest extends TestCase
         $this->subject->save($snapshot);
     }
 
+    #[Test]
+    public function findByIdentifierReturnsNullWhenNotFound(): void
+    {
+        $queryBuilder = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
+        $result = $this->createMock(\Doctrine\DBAL\Result::class);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_snapshots')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAssociative')
+            ->willReturn(false);
+
+        $snapshot = $this->subject->findByIdentifier('non-existent');
+
+        self::assertNull($snapshot);
+    }
+
+    #[Test]
+    public function findByIdentifierReturnsSnapshot(): void
+    {
+        $row = [
+            'uid' => 1,
+            'identifier' => 'test-snapshot',
+            'table_name' => 'test_table',
+            'hash' => 'abc123',
+            'created_at' => time(),
+            'metadata' => '{}',
+            'migration_version' => null,
+        ];
+
+        $queryBuilder = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
+        $result = $this->createMock(\Doctrine\DBAL\Result::class);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_snapshots')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAssociative')
+            ->willReturn($row);
+
+        $snapshot = $this->subject->findByIdentifier('test-snapshot');
+
+        self::assertInstanceOf(DataSnapshot::class, $snapshot);
+        self::assertEquals('test-snapshot', $snapshot->getIdentifier());
+    }
+
+    #[Test]
+    public function findLatestByTableNameReturnsLatestSnapshot(): void
+    {
+        $row = [
+            'uid' => 1,
+            'identifier' => 'test-snapshot',
+            'table_name' => 'test_table',
+            'hash' => 'abc123',
+            'created_at' => time(),
+            'metadata' => '{}',
+            'migration_version' => null,
+        ];
+
+        $queryBuilder = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
+        $result = $this->createMock(\Doctrine\DBAL\Result::class);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_snapshots')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('orderBy')
+            ->with('created_at', 'DESC')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('setMaxResults')
+            ->with(1)
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAssociative')
+            ->willReturn($row);
+
+        $snapshot = $this->subject->findLatestByTableName('test_table');
+
+        self::assertInstanceOf(DataSnapshot::class, $snapshot);
+        self::assertEquals('test_table', $snapshot->getTableName());
+    }
+
+    #[Test]
+    public function findByTableNameReturnsArrayOfSnapshots(): void
+    {
+        $rows = [
+            [
+                'uid' => 1,
+                'identifier' => 'test-snapshot-1',
+                'table_name' => 'test_table',
+                'hash' => 'abc123',
+                'created_at' => time(),
+                'metadata' => '{}',
+                'migration_version' => null,
+            ],
+            [
+                'uid' => 2,
+                'identifier' => 'test-snapshot-2',
+                'table_name' => 'test_table',
+                'hash' => 'def456',
+                'created_at' => time() - 3600,
+                'metadata' => '{}',
+                'migration_version' => null,
+            ],
+        ];
+
+        $queryBuilder = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
+        $result = $this->createMock(\Doctrine\DBAL\Result::class);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_snapshots')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('orderBy')
+            ->with('created_at', 'DESC')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAllAssociative')
+            ->willReturn($rows);
+
+        $snapshots = $this->subject->findByTableName('test_table');
+
+        self::assertCount(2, $snapshots);
+        self::assertInstanceOf(DataSnapshot::class, $snapshots[0]);
+        self::assertInstanceOf(DataSnapshot::class, $snapshots[1]);
+    }
+
+    #[Test]
+    public function findByMigrationVersionReturnsSnapshots(): void
+    {
+        $rows = [
+            [
+                'uid' => 1,
+                'identifier' => 'test-snapshot-1',
+                'table_name' => 'test_table',
+                'hash' => 'abc123',
+                'created_at' => time(),
+                'metadata' => '{}',
+                'migration_version' => 'v1.0.0',
+            ],
+        ];
+
+        $queryBuilder = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
+        $result = $this->createMock(\Doctrine\DBAL\Result::class);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_snapshots')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('orderBy')
+            ->with('created_at', 'ASC')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAllAssociative')
+            ->willReturn($rows);
+
+        $snapshots = $this->subject->findByMigrationVersion('v1.0.0');
+
+        self::assertCount(1, $snapshots);
+        self::assertInstanceOf(DataSnapshot::class, $snapshots[0]);
+    }
+
+    #[Test]
+    public function findAllReturnsAllSnapshots(): void
+    {
+        $rows = [
+            [
+                'uid' => 1,
+                'identifier' => 'test-snapshot-1',
+                'table_name' => 'test_table',
+                'hash' => 'abc123',
+                'created_at' => time(),
+                'metadata' => '{}',
+                'migration_version' => null,
+            ],
+        ];
+
+        $queryBuilder = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
+        $result = $this->createMock(\Doctrine\DBAL\Result::class);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_snapshots')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('orderBy')
+            ->with('created_at', 'DESC')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAllAssociative')
+            ->willReturn($rows);
+
+        $snapshots = $this->subject->findAll();
+
+        self::assertCount(1, $snapshots);
+        self::assertInstanceOf(DataSnapshot::class, $snapshots[0]);
+    }
+
+    #[Test]
+    public function deleteOlderThanDeletesOldSnapshots(): void
+    {
+        $cutoffDate = new \DateTimeImmutable('2023-01-01');
+
+        $queryBuilder = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('delete')
+            ->with('tx_t3hauler_snapshots')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('executeStatement')
+            ->willReturn(5);
+
+        $deletedCount = $this->subject->deleteOlderThan($cutoffDate);
+
+        self::assertEquals(5, $deletedCount);
+    }
+
+    #[Test]
+    public function deleteByTableNameDeletesSnapshotsForTable(): void
+    {
+        $queryBuilder = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('delete')
+            ->with('tx_t3hauler_snapshots')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('executeStatement')
+            ->willReturn(3);
+
+        $deletedCount = $this->subject->deleteByTableName('test_table');
+
+        self::assertEquals(3, $deletedCount);
+    }
+
+    #[Test]
+    public function existsByIdentifierReturnsTrueWhenExists(): void
+    {
+        $queryBuilder = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
+        $result = $this->createMock(\Doctrine\DBAL\Result::class);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('count')
+            ->with('uid')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_snapshots')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchOne')
+            ->willReturn(1);
+
+        $exists = $this->subject->existsByIdentifier('test-snapshot');
+
+        self::assertTrue($exists);
+    }
+
+    #[Test]
+    public function existsByIdentifierReturnsFalseWhenNotExists(): void
+    {
+        $queryBuilder = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
+        $result = $this->createMock(\Doctrine\DBAL\Result::class);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('count')
+            ->with('uid')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_snapshots')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchOne')
+            ->willReturn(0);
+
+        $exists = $this->subject->existsByIdentifier('non-existent');
+
+        self::assertFalse($exists);
+    }
+
+    #[Test]
+    public function countByTableNameReturnsCount(): void
+    {
+        $queryBuilder = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
+        $result = $this->createMock(\Doctrine\DBAL\Result::class);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('count')
+            ->with('uid')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_snapshots')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchOne')
+            ->willReturn(5);
+
+        $count = $this->subject->countByTableName('test_table');
+
+        self::assertEquals(5, $count);
+    }
+
+    #[Test]
+    public function findCurrentSnapshotReturnsCurrentSnapshot(): void
+    {
+        $row = [
+            'uid' => 1,
+            'identifier' => 'current-snapshot',
+            'table_name' => 'tx_t3hauler_snapshots',
+            'hash' => 'abc123',
+            'created_at' => time(),
+            'metadata' => '{}',
+            'migration_version' => null,
+        ];
+
+        $queryBuilder = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
+        $result = $this->createMock(\Doctrine\DBAL\Result::class);
+
+        $this->connectionMock->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('*')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('tx_t3hauler_snapshots')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('where')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('orderBy')
+            ->with('created_at', 'DESC')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('setMaxResults')
+            ->with(1)
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->expects(self::once())
+            ->method('executeQuery')
+            ->willReturn($result);
+
+        $result->expects(self::once())
+            ->method('fetchAssociative')
+            ->willReturn($row);
+
+        $snapshot = $this->subject->findCurrentSnapshot();
+
+        self::assertInstanceOf(DataSnapshot::class, $snapshot);
+        self::assertEquals('current-snapshot', $snapshot->getIdentifier());
+    }
+
     private function createDataSnapshot(): DataSnapshot
     {
         return new DataSnapshot(

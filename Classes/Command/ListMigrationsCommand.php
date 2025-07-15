@@ -72,7 +72,7 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
                 });
             }
 
-            $io->title('T3Hauler Migrations');
+            $io->title('t3hauler Migrations');
 
             if (!empty($migrations)) {
                 $this->displayMigrations($io, $migrations, $format);

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Cpsit\T3hauler\Domain\Model;
 
 /**
- * Custom export model for T3Hauler data exports
+ * Custom export model for t3hauler data exports
  *
  * Handles structured data export with relation dependency resolution
  */

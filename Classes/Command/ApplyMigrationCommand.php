@@ -80,7 +80,7 @@ class ApplyMigrationCommand extends Command implements ArgumentAwareInterface, O
         $dryRun = $input->getOption(DryRunOption::NAME);
         $force = $input->getOption(ForceOption::NAME);
 
-        $io->title('T3Hauler - Apply Migration');
+        $io->title('t3hauler - Apply Migration');
 
         try {
             // Find migration file from filesystem

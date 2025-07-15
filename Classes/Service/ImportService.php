@@ -9,7 +9,7 @@ use Doctrine\DBAL\Exception;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 
 /**
- * Service for importing T3Hauler export files
+ * Service for importing t3hauler export files
  *
  * Handles structured import from JSON format with relation dependency resolution
  */
@@ -18,7 +18,8 @@ class ImportService
     public function __construct(
         /** @phpstan-ignore-next-line property.onlyWritten */
         private readonly T3HaulerConfiguration $configuration, // Will be used for import configuration in future versions
-        private readonly ConnectionPool $connectionPool
+        private readonly ConnectionPool $connectionPool,
+        private readonly FilesystemInterface $filesystem
     ) {}
 
     /**
@@ -27,7 +28,7 @@ class ImportService
     public function importFromFile(string $filePath, bool $dryRun = false): array
     {
         try {
-            if (!file_exists($filePath)) {
+            if (!$this->filesystem->exists($filePath)) {
                 return [
                     'success' => false,
                     'message' => 'Import file not found: ' . $filePath,
@@ -35,7 +36,7 @@ class ImportService
                 ];
             }
 
-            $content = file_get_contents($filePath);
+            $content = $this->filesystem->getFileContents($filePath);
             if (empty($content)) {
                 return [
                     'success' => false,

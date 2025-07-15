@@ -48,7 +48,7 @@ class CleanupSnapshotsCommand extends Command implements ArgumentAwareInterface
         $io = new SymfonyStyle($input, $output);
         $keepDays = $input->getArgument(KeepDaysArgument::NAME);
 
-        $io->title('T3Hauler - Create Snapshot');
+        $io->title('t3hauler - Create Snapshot');
 
         try {
             return $this->cleanupSnapshots($io, (int)$keepDays);

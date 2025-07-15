@@ -10,6 +10,7 @@ use Cpsit\T3hauler\Domain\Model\Migration;
 use Cpsit\T3hauler\Domain\Repository\MigrationRepository;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
 use Cpsit\T3hauler\Service\ExportService;
+use Cpsit\T3hauler\Service\FilesystemInterface;
 use Cpsit\T3hauler\Service\MigrationService;
 use Cpsit\T3hauler\Utility\HashUtility;
 use PHPUnit\Framework\Attributes\Test;
@@ -28,6 +29,8 @@ class MigrationServiceTest extends TestCase
     private T3HaulerConfiguration $configuration;
     /** @var HashUtility&\PHPUnit\Framework\MockObject\MockObject */
     private HashUtility $hashUtility;
+    /** @var FilesystemInterface&\PHPUnit\Framework\MockObject\MockObject */
+    private FilesystemInterface $filesystem;
 
     protected function setUp(): void
     {
@@ -38,13 +41,15 @@ class MigrationServiceTest extends TestCase
         $this->migrationRepository = $this->createMock(MigrationRepository::class);
         $this->configuration = $this->createMock(T3HaulerConfiguration::class);
         $this->hashUtility = $this->createMock(HashUtility::class);
+        $this->filesystem = $this->createMock(FilesystemInterface::class);
 
         $this->subject = new MigrationService(
             $this->changeDetectionService,
             $this->exportService,
             $this->migrationRepository,
             $this->configuration,
-            $this->hashUtility
+            $this->hashUtility,
+            $this->filesystem
         );
     }
 
@@ -115,22 +120,9 @@ class MigrationServiceTest extends TestCase
     }
 
     #[Test]
-    public function createMigrationCreatesSuccessfully(): void
+    public function createMigrationThrowsExceptionWhenDirectoryCreationFails(): void
     {
-        self::markTestSkipped('File system access is required for this test. This test should be a functional test.');
-        // @phpstan-ignore deadCode.unreachable
-        $changesSummary = [
-            'has_changes' => true,
-            'changed_tables' => ['pages'],
-            'unchanged_tables' => [],
-            'no_baseline_tables' => [],
-        ];
-
-        $exportResult = [
-            'success' => true,
-            'message' => 'Export successful',
-            'record_count' => 5,
-        ];
+        $changesSummary = new ChangesSummary(1, ['pages'], [], [], true);
 
         $this->changeDetectionService->expects(self::once())
             ->method('getChangesSummary')
@@ -140,15 +132,54 @@ class MigrationServiceTest extends TestCase
             ->method('getMigrationPaths')
             ->willReturn(['/tmp/migrations']);
 
-        $this->configuration->expects(self::exactly(2))
+        $this->filesystem->expects(self::once())
+            ->method('getAbsoluteFilePath')
+            ->with('/tmp/migrations')
+            ->willReturn('/tmp/migrations');
+
+        $this->filesystem->expects(self::once())
+            ->method('isDirectory')
+            ->with('/tmp/migrations')
+            ->willReturn(false);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Failed to create migration directory');
+
+        $this->subject->createMigration('Test migration', 'Test Author');
+    }
+
+    #[Test]
+    public function createMigrationHandlesExportFailure(): void
+    {
+        $changesSummary = new ChangesSummary(1, ['pages'], [], [], true);
+
+        $this->changeDetectionService->expects(self::once())
+            ->method('getChangesSummary')
+            ->willReturn($changesSummary);
+
+        $this->configuration->expects(self::once())
+            ->method('getMigrationPaths')
+            ->willReturn(['/tmp/migrations']);
+
+        $this->filesystem->expects(self::once())
+            ->method('getAbsoluteFilePath')
+            ->with('/tmp/migrations')
+            ->willReturn('/tmp/migrations');
+
+        $this->filesystem->expects(self::once())
+            ->method('isDirectory')
+            ->with('/tmp/migrations')
+            ->willReturn(true);
+
+        $this->configuration->expects(self::once())
             ->method('getEnabledTables')
             ->willReturn(['pages', 'tt_content']);
 
-        $this->configuration->expects(self::exactly(2))
+        $this->configuration->expects(self::once())
             ->method('getExcludedFields')
             ->willReturn(['tstamp', 'crdate']);
 
-        $this->configuration->expects(self::exactly(2))
+        $this->configuration->expects(self::once())
             ->method('getHashAlgorithm')
             ->willReturn('sha256');
 
@@ -156,34 +187,93 @@ class MigrationServiceTest extends TestCase
             ->method('calculateMultiTableHash')
             ->willReturn('source_hash_123');
 
+        $exportResult = \Cpsit\T3hauler\Domain\Dto\ExportResult::failure(
+            \Cpsit\T3hauler\Domain\Enumeration\ExportStatus::EXPORT_FAILED,
+            'Export failed'
+        );
+
         $this->exportService->expects(self::once())
             ->method('exportChangedData')
             ->willReturn($exportResult);
 
-        $savedMigration = new Migration(
-            'T3H_123',
-            'Test migration',
-            'Test migration',
-            'Test Author',
-            'source_hash_123',
-            'T3H_123.t3d'
+        $this->filesystem->expects(self::once())
+            ->method('exists')
+            ->willReturn(false);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Failed to export data');
+
+        $this->subject->createMigration('Test migration', 'Test Author');
+    }
+
+    #[Test]
+    public function createMigrationCleansUpOnFailure(): void
+    {
+        $changesSummary = new ChangesSummary(1, ['pages'], [], [], true);
+
+        $this->changeDetectionService->expects(self::once())
+            ->method('getChangesSummary')
+            ->willReturn($changesSummary);
+
+        $this->configuration->expects(self::once())
+            ->method('getMigrationPaths')
+            ->willReturn(['/tmp/migrations']);
+
+        $this->filesystem->expects(self::once())
+            ->method('getAbsoluteFilePath')
+            ->with('/tmp/migrations')
+            ->willReturn('/tmp/migrations');
+
+        $this->filesystem->expects(self::once())
+            ->method('isDirectory')
+            ->with('/tmp/migrations')
+            ->willReturn(true);
+
+        $this->configuration->expects(self::once())
+            ->method('getEnabledTables')
+            ->willReturn(['pages', 'tt_content']);
+
+        $this->configuration->expects(self::once())
+            ->method('getExcludedFields')
+            ->willReturn(['tstamp', 'crdate']);
+
+        $this->configuration->expects(self::once())
+            ->method('getHashAlgorithm')
+            ->willReturn('sha256');
+
+        $this->hashUtility->expects(self::once())
+            ->method('calculateMultiTableHash')
+            ->willReturn('source_hash_123');
+
+        $exportResult = \Cpsit\T3hauler\Domain\Dto\ExportResult::success(
+            'Export successful',
+            5,
+            ['pages' => 3, 'tt_content' => 2],
+            '/tmp/migrations/test.json',
+            1024
         );
+
+        $this->exportService->expects(self::once())
+            ->method('exportChangedData')
+            ->willReturn($exportResult);
 
         $this->migrationRepository->expects(self::once())
             ->method('save')
-            ->willReturn($savedMigration);
+            ->willThrowException(new \RuntimeException('Database error'));
 
-        $this->changeDetectionService->expects(self::once())
-            ->method('createSnapshot')
-            ->willReturn([]);
+        // Cleanup should be called
+        $this->filesystem->expects(self::once())
+            ->method('exists')
+            ->willReturn(true);
 
-        $result = $this->subject->createMigration('Test migration', 'Test Author');
+        $this->filesystem->expects(self::once())
+            ->method('deleteFile')
+            ->willReturn(true);
 
-        self::assertTrue($result['success']);
-        self::assertSame('Migration created successfully', $result['message']);
-        self::assertInstanceOf(Migration::class, $result['migration']);
-        self::assertArrayHasKey('files', $result);
-        self::assertArrayHasKey('snapshots', $result);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Failed to create migration');
+
+        $this->subject->createMigration('Test migration', 'Test Author');
     }
 
     #[Test]
@@ -298,6 +388,10 @@ class MigrationServiceTest extends TestCase
             ->method('getMigrationPaths')
             ->willReturn(['/tmp/migrations']);
 
+        $this->filesystem->expects(self::exactly(2))
+            ->method('exists')
+            ->willReturnOnConsecutiveCalls(false, false);
+
         $result = $this->subject->validateMigration('T3H_123');
 
         self::assertFalse($result['valid']); // Files don't exist in test
@@ -305,5 +399,57 @@ class MigrationServiceTest extends TestCase
         self::assertNotEmpty($result['issues']);
         self::assertSame($migration, $result['migration']);
         self::assertArrayHasKey('files', $result);
+    }
+
+    #[Test]
+    public function validateMigrationReturnsValidWhenFilesExist(): void
+    {
+        $migration = new Migration('T3H_123', 'Test', 'Test', 'Author', 'hash', 'test.json');
+
+        $this->migrationRepository->expects(self::once())
+            ->method('findByMigrationId')
+            ->with('T3H_123')
+            ->willReturn($migration);
+
+        $this->configuration->expects(self::once())
+            ->method('getMigrationPaths')
+            ->willReturn(['/tmp/migrations']);
+
+        $this->filesystem->expects(self::exactly(2))
+            ->method('exists')
+            ->willReturnOnConsecutiveCalls(true, true);
+
+        $result = $this->subject->validateMigration('T3H_123');
+
+        self::assertTrue($result['valid']);
+        self::assertSame('Migration is valid', $result['message']);
+        self::assertSame($migration, $result['migration']);
+        self::assertArrayHasKey('files', $result);
+        self::assertEmpty($result['issues']);
+    }
+
+    #[Test]
+    public function validateMigrationHandlesEmptyMigrationPaths(): void
+    {
+        $migration = new Migration('T3H_123', 'Test', 'Test', 'Author', 'hash', 'test.json');
+
+        $this->migrationRepository->expects(self::once())
+            ->method('findByMigrationId')
+            ->with('T3H_123')
+            ->willReturn($migration);
+
+        $this->configuration->expects(self::once())
+            ->method('getMigrationPaths')
+            ->willReturn([]);
+
+        $this->filesystem->expects(self::exactly(2))
+            ->method('exists')
+            ->willReturnOnConsecutiveCalls(false, false);
+
+        $result = $this->subject->validateMigration('T3H_123');
+
+        self::assertFalse($result['valid']);
+        self::assertIsArray($result['issues']);
+        self::assertNotEmpty($result['issues']);
     }
 }

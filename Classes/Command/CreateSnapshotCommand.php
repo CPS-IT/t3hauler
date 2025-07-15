@@ -54,7 +54,7 @@ class CreateSnapshotCommand extends Command implements OptionAwareInterface
         $identifier = $input->getOption(IdentifierOption::NAME);
         $migrationVersion = $input->getOption(MigrationVersionOption::NAME);
 
-        $io->title('T3Hauler - Create Snapshot');
+        $io->title('t3hauler - Create Snapshot');
 
         try {
             return $this->createSnapshot($io, $identifier, $migrationVersion);

@@ -8,6 +8,7 @@ use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
 use Cpsit\T3hauler\Service\ExportService;
+use Cpsit\T3hauler\Service\FilesystemAdapter;
 use Cpsit\T3hauler\Service\ImportService;
 use Cpsit\T3hauler\Tests\Functional\TestingUtilities;
 use PHPUnit\Framework\Attributes\Test;
@@ -66,11 +67,13 @@ final class ExportImportIntegrationTest extends FunctionalTestCase
             $configuration,
             $connectionPool,
             GeneralUtility::makeInstance(DataSnapshotRepository::class),
+            GeneralUtility::makeInstance(FilesystemAdapter::class),
         );
         $this->importService = GeneralUtility::makeInstance(
             ImportService::class,
             $configuration,
             $connectionPool,
+            GeneralUtility::makeInstance(FilesystemAdapter::class),
         );
         $this->changeDetectionService = GeneralUtility::makeInstance(ChangeDetectionService::class);
 

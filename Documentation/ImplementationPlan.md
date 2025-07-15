@@ -1,8 +1,8 @@
-# T3Hauler Implementation Plan
+# t3hauler Implementation Plan
 
 ## Overview
 
-T3Hauler is a data migration tool for TYPO3 that enables developers to safely package and transfer data changes between environments while maintaining data integrity.
+t3hauler is a data migration tool for TYPO3 that enables developers to safely package and transfer data changes between environments while maintaining data integrity.
 
 ## Goals
 
@@ -140,7 +140,7 @@ The export system automatically:
 1. **No Internal Dependencies**: Avoids `@internal` TYPO3 classes
 2. **Format Standardization**: Consistent JSON format
 3. **Relation Handling**: Built-in dependency resolution
-4. **Better Performance**: Optimized for T3Hauler use cases
+4. **Better Performance**: Optimized for t3hauler use cases
 5. **Enhanced Metadata**: Rich migration context information
 
 ### Technical Implementation
@@ -384,7 +384,7 @@ class MigrationServiceTest extends TestCase
 
 ## Conclusion
 
-T3Hauler Phase 1 & 2 provide a solid foundation with:
+t3hauler Phase 1 & 2 provide a solid foundation with:
 - **Custom export system** avoiding TYPO3 internal classes
 - **JSON format support**
 - **Robust change detection** with hash-based validation

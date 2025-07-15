@@ -17,7 +17,7 @@ use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
- * End-to-end functional tests for T3Hauler change tracking workflow
+ * End-to-end functional tests for t3hauler change tracking workflow
  *
  * Tests the complete workflow from CLI commands through DataHandler hooks
  * to export validation using real TYPO3 backend operations.
@@ -60,7 +60,7 @@ final class EndToEndChangeTrackingTest extends FunctionalTestCase
         // Create a current snapshot for change tracking
         $this->createCurrentSnapshot();
 
-        // Configure T3Hauler to track pages and tt_content
+        // Configure t3hauler to track pages and tt_content
         $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['t3hauler']['detection']['enabledTables'] = ['pages', 'tt_content'];
 
         // Get public container services only

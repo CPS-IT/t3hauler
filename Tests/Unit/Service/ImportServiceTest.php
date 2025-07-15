@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Cpsit\T3hauler\Tests\Unit\Service;
 
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
+use Cpsit\T3hauler\Service\FilesystemInterface;
 use Cpsit\T3hauler\Service\ImportService;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use PHPUnit\Framework\Attributes\Test;
@@ -29,6 +30,8 @@ class ImportServiceTest extends TestCase
     private $queryBuilderMock;
     /** @var AbstractSchemaManager|MockObject */
     private $schemaManagerMock;
+    /** @var FilesystemInterface&MockObject */
+    private FilesystemInterface $filesystemMock;
 
     protected function setUp(): void
     {
@@ -37,16 +40,23 @@ class ImportServiceTest extends TestCase
         $this->connectionMock = $this->createMock(Connection::class);
         $this->queryBuilderMock = $this->createMock(QueryBuilder::class);
         $this->schemaManagerMock = $this->createMock(AbstractSchemaManager::class);
+        $this->filesystemMock = $this->createMock(FilesystemInterface::class);
 
         $this->subject = new ImportService(
             $this->configurationMock,
-            $this->connectionPoolMock
+            $this->connectionPoolMock,
+            $this->filesystemMock
         );
     }
 
     #[Test]
     public function importFromFileFailsWhenFileNotFound(): void
     {
+        $this->filesystemMock->expects(self::once())
+            ->method('exists')
+            ->with('/nonexistent/file.json')
+            ->willReturn(false);
+
         $result = $this->subject->importFromFile('/nonexistent/file.json');
 
         self::assertFalse($result['success']);
@@ -57,16 +67,23 @@ class ImportServiceTest extends TestCase
     #[Test]
     public function importFromFileFailsWhenFileIsEmpty(): void
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'test_');
-        file_put_contents($tempFile, '');
+        $tempFile = '/path/to/empty.json';
+
+        $this->filesystemMock->expects(self::once())
+            ->method('exists')
+            ->with($tempFile)
+            ->willReturn(true);
+
+        $this->filesystemMock->expects(self::once())
+            ->method('getFileContents')
+            ->with($tempFile)
+            ->willReturn('');
 
         $result = $this->subject->importFromFile($tempFile);
 
         self::assertFalse($result['success']);
         self::assertStringContainsString('empty', $result['message']);
         self::assertEquals(0, $result['imported_records']);
-
-        unlink($tempFile);
     }
 
     #[Test]
@@ -86,8 +103,17 @@ class ImportServiceTest extends TestCase
             'relations' => [],
         ];
 
-        $tempFile = tempnam(sys_get_temp_dir(), 'test_');
-        file_put_contents($tempFile, json_encode($exportData));
+        $tempFile = '/path/to/valid.json';
+
+        $this->filesystemMock->expects(self::once())
+            ->method('exists')
+            ->with($tempFile)
+            ->willReturn(true);
+
+        $this->filesystemMock->expects(self::once())
+            ->method('getFileContents')
+            ->with($tempFile)
+            ->willReturn(json_encode($exportData));
 
         // Mock table existence check
         $this->connectionPoolMock
@@ -161,8 +187,6 @@ class ImportServiceTest extends TestCase
         self::assertTrue($result['success']);
         self::assertEquals(2, $result['imported_records']);
         self::assertArrayHasKey('imported_tables', $result);
-
-        unlink($tempFile);
     }
 
     #[Test]
@@ -180,8 +204,17 @@ class ImportServiceTest extends TestCase
             'relations' => [],
         ];
 
-        $tempFile = tempnam(sys_get_temp_dir(), 'test_');
-        file_put_contents($tempFile, json_encode($exportData));
+        $tempFile = '/path/to/dry-run.json';
+
+        $this->filesystemMock->expects(self::once())
+            ->method('exists')
+            ->with($tempFile)
+            ->willReturn(true);
+
+        $this->filesystemMock->expects(self::once())
+            ->method('getFileContents')
+            ->with($tempFile)
+            ->willReturn(json_encode($exportData));
 
         // Mock table existence checks
         $this->connectionPoolMock
@@ -206,8 +239,6 @@ class ImportServiceTest extends TestCase
         self::assertEquals(3, $result['would_import']);
         self::assertTrue($result['dry_run']);
         self::assertArrayHasKey('tables_summary', $result);
-
-        unlink($tempFile);
     }
 
     #[Test]
@@ -439,16 +470,23 @@ class ImportServiceTest extends TestCase
     #[Test]
     public function importFromFileFailsWithInvalidJson(): void
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'test_');
-        file_put_contents($tempFile, '{"invalid": json}');
+        $tempFile = '/path/to/invalid.json';
+
+        $this->filesystemMock->expects(self::once())
+            ->method('exists')
+            ->with($tempFile)
+            ->willReturn(true);
+
+        $this->filesystemMock->expects(self::once())
+            ->method('getFileContents')
+            ->with($tempFile)
+            ->willReturn('{"invalid": json}');
 
         $result = $this->subject->importFromFile($tempFile);
 
         self::assertFalse($result['success']);
         self::assertStringContainsString('Failed to parse export file', $result['message']);
         self::assertEquals(0, $result['imported_records']);
-
-        unlink($tempFile);
     }
 
     #[Test]
@@ -458,16 +496,23 @@ class ImportServiceTest extends TestCase
             'invalid' => 'structure',
         ];
 
-        $tempFile = tempnam(sys_get_temp_dir(), 'test_');
-        file_put_contents($tempFile, json_encode($exportData));
+        $tempFile = '/path/to/invalid-structure.json';
+
+        $this->filesystemMock->expects(self::once())
+            ->method('exists')
+            ->with($tempFile)
+            ->willReturn(true);
+
+        $this->filesystemMock->expects(self::once())
+            ->method('getFileContents')
+            ->with($tempFile)
+            ->willReturn(json_encode($exportData));
 
         $result = $this->subject->importFromFile($tempFile);
 
         self::assertFalse($result['success']);
         self::assertStringContainsString('Invalid export structure', $result['message']);
         self::assertEquals(0, $result['imported_records']);
-
-        unlink($tempFile);
     }
 
     #[Test]
@@ -480,16 +525,23 @@ class ImportServiceTest extends TestCase
             'records' => [],
         ];
 
-        $tempFile = tempnam(sys_get_temp_dir(), 'test_');
-        file_put_contents($tempFile, json_encode($exportData));
+        $tempFile = '/path/to/unsupported.json';
+
+        $this->filesystemMock->expects(self::once())
+            ->method('exists')
+            ->with($tempFile)
+            ->willReturn(true);
+
+        $this->filesystemMock->expects(self::once())
+            ->method('getFileContents')
+            ->with($tempFile)
+            ->willReturn(json_encode($exportData));
 
         $result = $this->subject->importFromFile($tempFile);
 
         self::assertFalse($result['success']);
         self::assertStringContainsString('Unsupported format version', $result['message']);
         self::assertEquals(0, $result['imported_records']);
-
-        unlink($tempFile);
     }
 
     #[Test]
@@ -502,26 +554,42 @@ class ImportServiceTest extends TestCase
             'records' => [],
         ];
 
-        $tempFile = tempnam(sys_get_temp_dir(), 'test_');
-        file_put_contents($tempFile, json_encode($exportData));
+        $tempFile = '/path/to/missing-version.json';
+
+        $this->filesystemMock->expects(self::once())
+            ->method('exists')
+            ->with($tempFile)
+            ->willReturn(true);
+
+        $this->filesystemMock->expects(self::once())
+            ->method('getFileContents')
+            ->with($tempFile)
+            ->willReturn(json_encode($exportData));
 
         $result = $this->subject->importFromFile($tempFile);
 
         self::assertFalse($result['success']);
         self::assertStringContainsString('Missing format version', $result['message']);
         self::assertEquals(0, $result['imported_records']);
-
-        unlink($tempFile);
     }
 
     #[Test]
     public function importFromFileHandlesGeneralExceptions(): void
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'test_');
-        file_put_contents($tempFile, json_encode([
-            'metadata' => ['format_version' => '1.0'],
-            'records' => ['pages' => ['1' => ['title' => 'Test']]],
-        ]));
+        $tempFile = '/path/to/exception.json';
+
+        $this->filesystemMock->expects(self::once())
+            ->method('exists')
+            ->with($tempFile)
+            ->willReturn(true);
+
+        $this->filesystemMock->expects(self::once())
+            ->method('getFileContents')
+            ->with($tempFile)
+            ->willReturn(json_encode([
+                'metadata' => ['format_version' => '1.0'],
+                'records' => ['pages' => ['1' => ['title' => 'Test']]],
+            ]));
 
         // Make the connection pool throw an exception
         $this->connectionPoolMock
@@ -538,8 +606,6 @@ class ImportServiceTest extends TestCase
             str_contains($result['message'], 'Import completed with errors')
         );
         self::assertEquals(0, $result['imported_records']);
-
-        unlink($tempFile);
     }
 
     #[Test]
@@ -576,8 +642,17 @@ class ImportServiceTest extends TestCase
             ],
         ];
 
-        $tempFile = tempnam(sys_get_temp_dir(), 'test_');
-        file_put_contents($tempFile, json_encode($exportData));
+        $tempFile = '/path/to/missing-tables.json';
+
+        $this->filesystemMock->expects(self::once())
+            ->method('exists')
+            ->with($tempFile)
+            ->willReturn(true);
+
+        $this->filesystemMock->expects(self::once())
+            ->method('getFileContents')
+            ->with($tempFile)
+            ->willReturn(json_encode($exportData));
 
         // Mock table existence - pages exists, nonexistent_table doesn't
         $this->connectionPoolMock
@@ -602,8 +677,6 @@ class ImportServiceTest extends TestCase
         self::assertTrue($result['dry_run']);
         self::assertNotEmpty($result['issues']);
         self::assertStringContainsString('nonexistent_table', $result['issues'][0]);
-
-        unlink($tempFile);
     }
 
     #[Test]

@@ -73,7 +73,7 @@ class ListSnapshotsCommand extends Command implements OptionAwareInterface
                 return Command::SUCCESS;
             }
 
-            $io->title('T3Hauler Snapshots');
+            $io->title('t3hauler Snapshots');
 
             $displayMethod = $showDetails ? 'displayDetailedSnapshots' : 'displaySnapshotsAsTable';
             $this->{$displayMethod}($io, $snapshots);

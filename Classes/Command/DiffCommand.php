@@ -58,7 +58,7 @@ class DiffCommand extends Command implements OptionAwareInterface
         $summaryOnly = $input->getOption(SummaryOption::NAME);
         $specificTable = $input->getOption(TableOption::NAME);
 
-        $io->title('T3Hauler - Change Detection');
+        $io->title('t3hauler - Change Detection');
 
         try {
             if ($specificTable) {

@@ -8,7 +8,7 @@ use Symfony\Component\Yaml\Yaml;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
- * Configuration service for T3Hauler
+ * Configuration service for t3hauler
  *
  * Loads and manages configuration from configurable paths
  */

@@ -8,10 +8,9 @@ use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Domain\Model\Migration;
 use Cpsit\T3hauler\Domain\Repository\MigrationRepository;
 use Cpsit\T3hauler\Utility\HashUtility;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
- * Service for creating and managing T3Hauler migrations
+ * Service for creating and managing t3hauler migrations
  *
  * Orchestrates the migration generation process with T3D export and Doctrine migrations
  */
@@ -22,7 +21,8 @@ class MigrationService
         private readonly ExportService $exportService,
         private readonly MigrationRepository $migrationRepository,
         private readonly T3HaulerConfiguration $configuration,
-        private readonly HashUtility $hashUtility
+        private readonly HashUtility $hashUtility,
+        private readonly FilesystemInterface $filesystem
     ) {}
 
     /**
@@ -53,10 +53,10 @@ class MigrationService
         }
 
         $migrationPath = $migrationPaths[0];
-        $migrationPath = GeneralUtility::getFileAbsFileName($migrationPath);
+        $migrationPath = $this->filesystem->getAbsoluteFilePath($migrationPath);
 
         //@todo Check and create path with TYPO3 core utilities
-        if (!$dryRun && !is_dir($migrationPath)) {
+        if (!$dryRun && !$this->filesystem->isDirectory($migrationPath)) {
             /** @noinspection MkdirRaceConditionInspection */
             /** @noinspection NestedPositiveIfStatementsInspection */
             if (!mkdir($migrationPath, 0755, true)) {
@@ -206,11 +206,11 @@ class MigrationService
 
         $issues = [];
 
-        if (!file_exists($exportFile)) {
+        if (!$this->filesystem->exists($exportFile)) {
             $issues[] = 'Export file not found: ' . $exportFile;
         }
 
-        if (!file_exists($metadataFile)) {
+        if (!$this->filesystem->exists($metadataFile)) {
             $issues[] = 'Metadata file not found: ' . $metadataFile;
         }
 
@@ -261,8 +261,8 @@ class MigrationService
      */
     private function cleanupFailedMigration(string $exportFilePath): void
     {
-        if (file_exists($exportFilePath)) {
-            @unlink($exportFilePath);
+        if ($this->filesystem->exists($exportFilePath)) {
+            $this->filesystem->deleteFile($exportFilePath);
         }
     }
 }
