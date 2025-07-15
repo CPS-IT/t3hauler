@@ -67,6 +67,7 @@ services:
   # Filesystem services
   Cpsit\T3hauler\Service\FilesystemInterface:
     class: Cpsit\T3hauler\Service\FilesystemAdapter
+    public: true
 
   # Change tracking services
   Cpsit\T3hauler\Service\ChangeTrackingService:

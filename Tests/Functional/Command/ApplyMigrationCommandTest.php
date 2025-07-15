@@ -67,8 +67,9 @@ final class ApplyMigrationCommandTest extends FunctionalTestCase
             [$this->testMigrationPath] // migration paths
         );
 
-        // Create MigrationFileRepository with configuration
-        $migrationFileRepository = new MigrationFileRepository($configuration);
+        // Create MigrationFileRepository with configuration and filesystem
+        $filesystemAdapter = $container->get(\Cpsit\T3hauler\Service\FilesystemInterface::class);
+        $migrationFileRepository = new MigrationFileRepository($configuration, $filesystemAdapter);
 
         $this->command = new ApplyMigrationCommand(
             $configuration,
