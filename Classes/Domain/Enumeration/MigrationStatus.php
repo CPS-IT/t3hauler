@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Cpsit\T3hauler\Domain\Model;
+namespace Cpsit\T3hauler\Domain\Enumeration;
 
 /**
  * Enumeration for migration status values

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Domain\Model;
 
+use Cpsit\T3hauler\Domain\Enumeration\MigrationStatus;
+
 /**
  * Domain model for T3Hauler migrations
  *
@@ -31,7 +33,8 @@ class Migration
         string $author,
         string $sourceHash,
         string $dataFile
-    ) {
+    )
+    {
         $this->migrationId = $migrationId;
         $this->name = $name;
         $this->description = $description;

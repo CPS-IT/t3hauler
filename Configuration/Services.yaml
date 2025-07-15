@@ -62,6 +62,11 @@ services:
   Cpsit\T3hauler\Domain\Repository\MigrationFileRepository:
     arguments:
       $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
+      $filesystem: '@Cpsit\T3hauler\Service\FilesystemInterface'
+
+  # Filesystem services
+  Cpsit\T3hauler\Service\FilesystemInterface:
+    class: Cpsit\T3hauler\Service\FilesystemAdapter
 
   # Change tracking services
   Cpsit\T3hauler\Service\ChangeTrackingService:

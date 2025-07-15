@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Cpsit\T3hauler\Domain\Repository;
 
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
-use Cpsit\T3hauler\Domain\Model\MigrationStatus;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
+use Cpsit\T3hauler\Domain\Enumeration\MigrationStatus;
+use Cpsit\T3hauler\Domain\Model\MigrationFile;
+use Cpsit\T3hauler\Service\FilesystemInterface;
 
 /**
  * Repository for accessing migration files from the filesystem
@@ -16,11 +17,39 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class MigrationFileRepository
 {
     public function __construct(
-        private readonly T3HaulerConfiguration $configuration
+        private readonly T3HaulerConfiguration $configuration,
+        private readonly FilesystemInterface $filesystem
     ) {}
 
     /**
      * Find all migration files across all configured paths
+     *
+     * @return array<MigrationFile>
+     */
+    public function findAllAsObjects(): array
+    {
+        $migrations = [];
+        $migrationPaths = $this->configuration->getMigrationPaths();
+
+        foreach ($migrationPaths as $migrationPath) {
+            $absolutePath = $this->filesystem->getAbsoluteFilePath($migrationPath);
+
+            if (!$this->filesystem->isDirectory($absolutePath)) {
+                continue;
+            }
+
+            $pathMigrations = $this->scanMigrationPathAsObjects($absolutePath, $migrationPath);
+            $migrations = array_merge($migrations, $pathMigrations);
+        }
+
+        // Sort by migration ID (timestamp)
+        usort($migrations, fn(MigrationFile $a, MigrationFile $b) => strcmp($a->getId(), $b->getId()));
+
+        return $migrations;
+    }
+
+    /**
+     * Find all migration files across all configured paths (legacy array format)
      *
      * @return array<array{id: string, file: string, path: string, absolute_path: string, data: array|null}>
      */
@@ -30,9 +59,9 @@ class MigrationFileRepository
         $migrationPaths = $this->configuration->getMigrationPaths();
 
         foreach ($migrationPaths as $migrationPath) {
-            $absolutePath = GeneralUtility::getFileAbsFileName($migrationPath);
+            $absolutePath = $this->filesystem->getAbsoluteFilePath($migrationPath);
 
-            if (!is_dir($absolutePath)) {
+            if (!$this->filesystem->isDirectory($absolutePath)) {
                 continue;
             }
 
@@ -47,7 +76,44 @@ class MigrationFileRepository
     }
 
     /**
-     * Find a specific migration file by ID
+     * Find a specific migration file by ID as object
+     */
+    public function findByIdAsObject(string $migrationId): ?MigrationFile
+    {
+        $migrationPaths = $this->configuration->getMigrationPaths();
+
+        foreach ($migrationPaths as $migrationPath) {
+            $absolutePath = $this->filesystem->getAbsoluteFilePath($migrationPath);
+
+            if (!$this->filesystem->isDirectory($absolutePath)) {
+                continue;
+            }
+
+            $migrationFile = $absolutePath . '/' . $migrationId . '.json';
+            if ($this->filesystem->exists($migrationFile)) {
+                $data = $this->loadMigrationData($migrationFile);
+                if (!$data) {
+                    continue;
+                }
+
+                $status = $this->determineStatusFromFilesystem($migrationFile, $data);
+
+                return new MigrationFile(
+                    $migrationId,
+                    $migrationId . '.json',
+                    $migrationPath,
+                    $migrationFile,
+                    $data,
+                    $status
+                );
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Find a specific migration file by ID (legacy array format)
      *
      * @return array{id: string, file: string, path: string, absolute_path: string, data: array|null}|null
      */
@@ -56,14 +122,14 @@ class MigrationFileRepository
         $migrationPaths = $this->configuration->getMigrationPaths();
 
         foreach ($migrationPaths as $migrationPath) {
-            $absolutePath = GeneralUtility::getFileAbsFileName($migrationPath);
+            $absolutePath = $this->filesystem->getAbsoluteFilePath($migrationPath);
 
-            if (!is_dir($absolutePath)) {
+            if (!$this->filesystem->isDirectory($absolutePath)) {
                 continue;
             }
 
             $migrationFile = $absolutePath . '/' . $migrationId . '.json';
-            if (file_exists($migrationFile)) {
+            if ($this->filesystem->exists($migrationFile)) {
                 return [
                     'id' => $migrationId,
                     'file' => $migrationId . '.json',
@@ -130,13 +196,13 @@ class MigrationFileRepository
 
         // Check if migration has been applied (simplified check for now)
         $appliedMarker = str_replace('.json', '.applied', $migration['absolute_path']);
-        if (file_exists($appliedMarker)) {
+        if ($this->filesystem->exists($appliedMarker)) {
             return MigrationStatus::APPLIED;
         }
 
         // Check if migration has failed
         $failedMarker = str_replace('.json', '.failed', $migration['absolute_path']);
-        if (file_exists($failedMarker)) {
+        if ($this->filesystem->exists($failedMarker)) {
             return MigrationStatus::FAILED;
         }
 
@@ -154,7 +220,7 @@ class MigrationFileRepository
         }
 
         $appliedMarker = str_replace('.json', '.applied', $migration['absolute_path']);
-        return file_put_contents($appliedMarker, date('Y-m-d H:i:s')) !== false;
+        return $this->filesystem->putFileContents($appliedMarker, date('Y-m-d H:i:s')) !== false;
     }
 
     /**
@@ -173,7 +239,7 @@ class MigrationFileRepository
             'reason' => $reason,
         ]);
 
-        return file_put_contents($failedMarker, $content) !== false;
+        return $this->filesystem->putFileContents($failedMarker, $content) !== false;
     }
 
     /**
@@ -192,8 +258,8 @@ class MigrationFileRepository
 
         foreach ($markers as $marker) {
             $markerFile = $basePath . $marker;
-            if (file_exists($markerFile)) {
-                $success = $success && unlink($markerFile);
+            if ($this->filesystem->exists($markerFile)) {
+                $success = $success && $this->filesystem->deleteFile($markerFile);
             }
         }
 
@@ -240,8 +306,8 @@ class MigrationFileRepository
             $statusCounts[$status->value]++;
 
             // Calculate file size and record count
-            if (file_exists($migration['absolute_path'])) {
-                $totalSize += filesize($migration['absolute_path']);
+            if ($this->filesystem->exists($migration['absolute_path'])) {
+                $totalSize += $this->filesystem->getFileSize($migration['absolute_path']);
             }
 
             if ($migration['data'] && isset($migration['data']['records'])) {
@@ -270,13 +336,13 @@ class MigrationFileRepository
         $pathInfo = [];
 
         foreach ($migrationPaths as $migrationPath) {
-            $absolutePath = GeneralUtility::getFileAbsFileName($migrationPath);
-            $exists = is_dir($absolutePath);
-            $writable = $exists && is_writable($absolutePath);
+            $absolutePath = $this->filesystem->getAbsoluteFilePath($migrationPath);
+            $exists = $this->filesystem->isDirectory($absolutePath);
+            $writable = $exists && $this->filesystem->isWritable($absolutePath);
 
             $migrationCount = 0;
             if ($exists) {
-                $files = glob($absolutePath . '/*.json') ?: [];
+                $files = $this->filesystem->glob($absolutePath . '/*.json');
                 $migrationCount = count($files);
             }
 
@@ -300,7 +366,7 @@ class MigrationFileRepository
     private function scanMigrationPath(string $absolutePath, string $relativePath): array
     {
         $migrations = [];
-        $files = glob($absolutePath . '/*.json') ?: [];
+        $files = $this->filesystem->glob($absolutePath . '/*.json');
 
         foreach ($files as $file) {
             $filename = basename($file);
@@ -331,11 +397,11 @@ class MigrationFileRepository
     private function loadMigrationData(string $filePath): ?array
     {
         try {
-            if (!file_exists($filePath)) {
+            if (!$this->filesystem->exists($filePath)) {
                 return null;
             }
 
-            $content = file_get_contents($filePath);
+            $content = $this->filesystem->getFileContents($filePath);
             if ($content === false) {
                 return null;
             }
@@ -377,5 +443,69 @@ class MigrationFileRepository
         }
 
         return true;
+    }
+
+    /**
+     * Scan a single migration path for migration files as objects
+     *
+     * @return array<MigrationFile>
+     */
+    private function scanMigrationPathAsObjects(string $absolutePath, string $relativePath): array
+    {
+        $migrations = [];
+        $files = $this->filesystem->glob($absolutePath . '/*.json');
+
+        foreach ($files as $file) {
+            $filename = basename($file);
+
+            // Parse migration ID from filename (format: YYYY-MM-DD_HH:ii:ss_hash.json)
+            if (!preg_match('/(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}_[a-f0-9]{8})\.json/', $filename, $matches)) {
+                continue;
+            }
+
+            $migrationId = $matches[1];
+            $data = $this->loadMigrationData($file);
+
+            if (!$data) {
+                continue;
+            }
+
+            $status = $this->determineStatusFromFilesystem($file, $data);
+
+            $migrations[] = new MigrationFile(
+                $migrationId,
+                $filename,
+                $relativePath,
+                $file,
+                $data,
+                $status
+            );
+        }
+
+        return $migrations;
+    }
+
+    /**
+     * Determine migration status from filesystem markers and data
+     */
+    private function determineStatusFromFilesystem(string $filePath, array $data): MigrationStatus
+    {
+        if (!$this->isValidMigrationData($data)) {
+            return MigrationStatus::INVALID;
+        }
+
+        // Check if migration has been applied
+        $appliedMarker = str_replace('.json', '.applied', $filePath);
+        if ($this->filesystem->exists($appliedMarker)) {
+            return MigrationStatus::APPLIED;
+        }
+
+        // Check if migration has failed
+        $failedMarker = str_replace('.json', '.failed', $filePath);
+        if ($this->filesystem->exists($failedMarker)) {
+            return MigrationStatus::FAILED;
+        }
+
+        return MigrationStatus::PENDING;
     }
 }

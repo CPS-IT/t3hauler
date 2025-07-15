@@ -307,6 +307,11 @@ class ImportService
                     $connection->insert($tableName, $insertData);
                     $importedCount++;
                 } catch (\Exception $e) {
+                    /**
+                     * @todo We should either use a logging service,
+                     * or catch silently
+                     * or refuse to import **all** records (and possibly the whole migration)
+                     */
                     // Log error but continue with other records
                     error_log("Failed to import record {$uid} in table {$tableName}: " . $e->getMessage());
                 }
