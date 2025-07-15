@@ -6,7 +6,7 @@ namespace Cpsit\T3hauler\Service;
 
 /**
  * Interface for filesystem operations
- * 
+ *
  * Provides an abstraction layer for filesystem operations to improve testability
  */
 interface FilesystemInterface
@@ -53,7 +53,7 @@ interface FilesystemInterface
 
     /**
      * Find files matching a pattern
-     * 
+     *
      * @return array<string> Array of file paths
      */
     public function glob(string $pattern): array;

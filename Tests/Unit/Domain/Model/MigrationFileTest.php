@@ -209,7 +209,6 @@ class MigrationFileTest extends TestCase
     {
         $summary = $this->subject->getSummary();
 
-        self::assertIsArray($summary);
         self::assertSame('2024-07-14_07:30:15_a1b2c3d4', $summary['id']);
         self::assertSame('2024-07-14_07:30:15_a1b2c3d4.json', $summary['filename']);
         self::assertSame('fileadmin/migrations', $summary['path']);
@@ -233,7 +232,6 @@ class MigrationFileTest extends TestCase
     {
         $array = $this->subject->toArray();
 
-        self::assertIsArray($array);
         self::assertSame('2024-07-14_07:30:15_a1b2c3d4', $array['id']);
         self::assertSame('2024-07-14_07:30:15_a1b2c3d4.json', $array['file']);
         self::assertSame('fileadmin/migrations', $array['path']);

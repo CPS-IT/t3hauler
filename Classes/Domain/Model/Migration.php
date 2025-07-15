@@ -33,8 +33,7 @@ class Migration
         string $author,
         string $sourceHash,
         string $dataFile
-    )
-    {
+    ) {
         $this->migrationId = $migrationId;
         $this->name = $name;
         $this->description = $description;

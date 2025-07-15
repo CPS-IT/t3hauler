@@ -59,7 +59,6 @@ class MigrationFileRepositoryTest extends TestCase
 
         $result = $this->subject->findAllAsObjects();
 
-        self::assertIsArray($result);
         self::assertEmpty($result);
     }
 
@@ -91,7 +90,6 @@ class MigrationFileRepositoryTest extends TestCase
 
         $result = $this->subject->findAllAsObjects();
 
-        self::assertIsArray($result);
         self::assertEmpty($result);
     }
 
@@ -272,7 +270,6 @@ class MigrationFileRepositoryTest extends TestCase
 
         $result = $this->subject->validatePaths();
 
-        self::assertIsArray($result);
         self::assertCount(1, $result);
         self::assertSame('fileadmin/migrations', $result[0]['path']);
         self::assertSame('/var/www/fileadmin/migrations', $result[0]['absolute_path']);

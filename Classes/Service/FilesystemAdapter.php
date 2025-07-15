@@ -8,7 +8,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Concrete implementation of filesystem operations
- * 
+ *
  * Wraps PHP filesystem functions and TYPO3 utilities for better testability
  */
 class FilesystemAdapter implements FilesystemInterface
