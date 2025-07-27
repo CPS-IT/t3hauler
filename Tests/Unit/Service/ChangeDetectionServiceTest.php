@@ -219,7 +219,7 @@ class ChangeDetectionServiceTest extends TestCase
     public function cleanupOldSnapshotsCallsRepositoryWithCorrectDate(): void
     {
         $this->snapshotRepository->expects(self::once())
-            ->method('deleteOlderThan')
+            ->method('deleteSnapshotsOlderThan')
             ->with(self::callback(function (\DateTimeInterface $date) {
                 $expected = new \DateTimeImmutable('-30 days');
                 // Allow 1 second difference for test execution time

@@ -282,6 +282,6 @@ readonly class ChangeDetectionService
     public function cleanupOldSnapshots(int $keepDays = 30): int
     {
         $cutoffDate = new \DateTimeImmutable('-' . $keepDays . ' days');
-        return $this->snapshotRepository->deleteOlderThan($cutoffDate);
+        return $this->snapshotRepository->deleteSnapshotsOlderThan($cutoffDate);
     }
 }

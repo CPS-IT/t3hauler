@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./.build/bin/phpunit:*)",
+      "Bash(composer test:*)",
+      "Bash(composer sca:*)",
+      "Bash(phpunit:*)",
+      "Bash(.build/bin/phpunit -c phpunit.functional.xml --filter EndToEndChangeTrackingTest)"
+    ],
+    "deny": []
+  }
+}

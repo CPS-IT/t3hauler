@@ -5,37 +5,20 @@ declare(strict_types=1);
 namespace Cpsit\T3hauler\Domain\Repository;
 
 use Cpsit\T3hauler\Domain\Model\Migration;
-use TYPO3\CMS\Core\Database\Connection;
-use TYPO3\CMS\Core\Database\ConnectionPool;
 
 /**
  * Repository for Migration domain objects
  */
-class MigrationRepository
+class MigrationRepository extends AbstractRepository
 {
-    private const TABLE_NAME = 'tx_t3hauler_migrations';
-
-    public function __construct(
-        private readonly ConnectionPool $connectionPool
-    ) {}
+    protected const string TABLE_NAME = 'tx_t3hauler_migrations';
 
     /**
      * Find migration by migration ID
      */
     public function findByMigrationId(string $migrationId): ?Migration
     {
-        $connection = $this->getConnection();
-        $queryBuilder = $connection->createQueryBuilder();
-
-        $row = $queryBuilder
-            ->select('*')
-            ->from(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->eq('migration_id', $queryBuilder->createNamedParameter($migrationId))
-            )
-            ->executeQuery()
-            ->fetchAssociative();
-
+        $row = $this->findOneByConditions(['migration_id' => $migrationId]);
         return $row ? Migration::fromArray($row) : null;
     }
 
@@ -44,18 +27,7 @@ class MigrationRepository
      */
     public function findByUid(int $uid): ?Migration
     {
-        $connection = $this->getConnection();
-        $queryBuilder = $connection->createQueryBuilder();
-
-        $row = $queryBuilder
-            ->select('*')
-            ->from(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT))
-            )
-            ->executeQuery()
-            ->fetchAssociative();
-
+        $row = $this->findOneByConditions(['uid' => $uid]);
         return $row ? Migration::fromArray($row) : null;
     }
 
@@ -64,17 +36,8 @@ class MigrationRepository
      */
     public function findAll(string $orderBy = 'created_at', string $direction = 'DESC'): array
     {
-        $connection = $this->getConnection();
-        $queryBuilder = $connection->createQueryBuilder();
-
-        $rows = $queryBuilder
-            ->select('*')
-            ->from(self::TABLE_NAME)
-            ->orderBy($orderBy, $direction)
-            ->executeQuery()
-            ->fetchAllAssociative();
-
-        return array_map(fn($row) => Migration::fromArray($row), $rows);
+        $rows = $this->findByConditions([], [$orderBy => $direction]);
+        return $this->mapRowsToObjects($rows, fn($row) => Migration::fromArray($row));
     }
 
     /**
@@ -82,20 +45,11 @@ class MigrationRepository
      */
     public function findByStatus(string $status): array
     {
-        $connection = $this->getConnection();
-        $queryBuilder = $connection->createQueryBuilder();
-
-        $rows = $queryBuilder
-            ->select('*')
-            ->from(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->eq('status', $queryBuilder->createNamedParameter($status))
-            )
-            ->orderBy('created_at', 'DESC')
-            ->executeQuery()
-            ->fetchAllAssociative();
-
-        return array_map(fn($row) => Migration::fromArray($row), $rows);
+        $rows = $this->findByConditions(
+            ['status' => $status],
+            ['created_at' => 'DESC']
+        );
+        return $this->mapRowsToObjects($rows, fn($row) => Migration::fromArray($row));
     }
 
     /**
@@ -127,18 +81,8 @@ class MigrationRepository
      */
     public function findLatest(): ?Migration
     {
-        $connection = $this->getConnection();
-        $queryBuilder = $connection->createQueryBuilder();
-
-        $row = $queryBuilder
-            ->select('*')
-            ->from(self::TABLE_NAME)
-            ->orderBy('created_at', 'DESC')
-            ->setMaxResults(1)
-            ->executeQuery()
-            ->fetchAssociative();
-
-        return $row ? Migration::fromArray($row) : null;
+        $rows = $this->findByConditions([], ['created_at' => 'DESC'], 1);
+        return $rows ? Migration::fromArray($rows[0]) : null;
     }
 
     /**
@@ -146,21 +90,13 @@ class MigrationRepository
      */
     public function save(Migration $migration): Migration
     {
-        $connection = $this->getConnection();
         $data = $migration->toArray();
 
         if ($migration->getUid() === null) {
-            // Insert new migration
-            unset($data['uid']);
-            $connection->insert(self::TABLE_NAME, $data);
-            $migration->setUid((int)$connection->lastInsertId());
+            $uid = $this->insertRecord($data);
+            $migration->setUid($uid);
         } else {
-            // Update existing migration
-            $connection->update(
-                self::TABLE_NAME,
-                $data,
-                ['uid' => $migration->getUid()]
-            );
+            $this->updateRecord($migration->getUid(), $data);
         }
 
         return $migration;
@@ -175,13 +111,7 @@ class MigrationRepository
             return false;
         }
 
-        $connection = $this->getConnection();
-        $affectedRows = $connection->delete(
-            self::TABLE_NAME,
-            ['uid' => $migration->getUid()]
-        );
-
-        return $affectedRows > 0;
+        return $this->deleteRecord($migration->getUid());
     }
 
     /**
@@ -189,12 +119,7 @@ class MigrationRepository
      */
     public function deleteByMigrationId(string $migrationId): bool
     {
-        $connection = $this->getConnection();
-        $affectedRows = $connection->delete(
-            self::TABLE_NAME,
-            ['migration_id' => $migrationId]
-        );
-
+        $affectedRows = $this->deleteByConditions(['migration_id' => $migrationId]);
         return $affectedRows > 0;
     }
 
@@ -203,19 +128,7 @@ class MigrationRepository
      */
     public function exists(string $migrationId): bool
     {
-        $connection = $this->getConnection();
-        $queryBuilder = $connection->createQueryBuilder();
-
-        $count = $queryBuilder
-            ->count('uid')
-            ->from(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->eq('migration_id', $queryBuilder->createNamedParameter($migrationId))
-            )
-            ->executeQuery()
-            ->fetchOne();
-
-        return $count > 0;
+        return $this->existsByConditions(['migration_id' => $migrationId]);
     }
 
     /**
@@ -223,17 +136,7 @@ class MigrationRepository
      */
     public function countByStatus(string $status): int
     {
-        $connection = $this->getConnection();
-        $queryBuilder = $connection->createQueryBuilder();
-
-        return (int)$queryBuilder
-            ->count('uid')
-            ->from(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->eq('status', $queryBuilder->createNamedParameter($status))
-            )
-            ->executeQuery()
-            ->fetchOne();
+        return $this->countByConditions(['status' => $status]);
     }
 
     /**
@@ -255,40 +158,15 @@ class MigrationRepository
      */
     public function count(): int
     {
-        $connection = $this->getConnection();
-        $queryBuilder = $connection->createQueryBuilder();
-
-        return (int)$queryBuilder
-            ->count('uid')
-            ->from(self::TABLE_NAME)
-            ->executeQuery()
-            ->fetchOne();
+        return $this->countByConditions([]);
     }
 
     /**
      * Delete old migrations
      */
-    public function deleteOlderThan(\DateTimeInterface $date): int
+    public function deleteMigrationsOlderThan(\DateTimeInterface $date): int
     {
-        $connection = $this->getConnection();
-        $queryBuilder = $connection->createQueryBuilder();
-
-        return $queryBuilder
-            ->delete(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->lt(
-                    'created_at',
-                    $queryBuilder->createNamedParameter($date->getTimestamp(), Connection::PARAM_INT)
-                )
-            )
-            ->executeStatement();
+        return $this->deleteOlderThan('created_at', $date);
     }
 
-    /**
-     * Get database connection
-     */
-    private function getConnection(): Connection
-    {
-        return $this->connectionPool->getConnectionForTable(self::TABLE_NAME);
-    }
 }

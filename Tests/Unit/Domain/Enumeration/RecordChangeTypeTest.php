@@ -96,6 +96,7 @@ final class RecordChangeTypeTest extends TestCase
     public function fromThrowsExceptionForInvalidValue(): void
     {
         $this->expectException(\ValueError::class);
+        // @phpstan-ignore staticMethod.resultUnused
         RecordChangeType::from('invalid_type');
     }
 

@@ -35,6 +35,13 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->with('tx_t3hauler_snapshots')
             ->willReturn($this->connectionMock);
 
+        // Mock getQueryBuilderForTable to return a QueryBuilder from the connection mock
+        $this->connectionPoolMock->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_snapshots')
+            ->willReturnCallback(function () {
+                return $this->connectionMock->createQueryBuilder();
+            });
+
         $this->subject = new DataSnapshotRepository($this->connectionPoolMock);
     }
 
@@ -481,7 +488,7 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
@@ -489,8 +496,8 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->willReturn($result);
 
         $result->expects(self::once())
-            ->method('fetchAssociative')
-            ->willReturn(false);
+            ->method('fetchAllAssociative')
+            ->willReturn([]);
 
         $snapshot = $this->subject->findByIdentifier('non-existent');
 
@@ -528,7 +535,7 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
@@ -536,8 +543,8 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->willReturn($result);
 
         $result->expects(self::once())
-            ->method('fetchAssociative')
-            ->willReturn($row);
+            ->method('fetchAllAssociative')
+            ->willReturn([$row]);
 
         $snapshot = $this->subject->findByIdentifier('test-snapshot');
 
@@ -576,7 +583,7 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
@@ -594,8 +601,8 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->willReturn($result);
 
         $result->expects(self::once())
-            ->method('fetchAssociative')
-            ->willReturn($row);
+            ->method('fetchAllAssociative')
+            ->willReturn([$row]);
 
         $snapshot = $this->subject->findLatestByTableName('test_table');
 
@@ -645,7 +652,7 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
@@ -701,7 +708,7 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
@@ -775,7 +782,7 @@ final class DataSnapshotRepositoryTest extends TestCase
     }
 
     #[Test]
-    public function deleteOlderThanDeletesOldSnapshots(): void
+    public function deleteSnapshotsOlderThanDeletesOldSnapshots(): void
     {
         $cutoffDate = new \DateTimeImmutable('2023-01-01');
 
@@ -798,7 +805,7 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->method('executeStatement')
             ->willReturn(5);
 
-        $deletedCount = $this->subject->deleteOlderThan($cutoffDate);
+        $deletedCount = $this->subject->deleteSnapshotsOlderThan($cutoffDate);
 
         self::assertEquals(5, $deletedCount);
     }
@@ -818,7 +825,7 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
@@ -851,7 +858,7 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
@@ -888,7 +895,7 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
@@ -925,7 +932,7 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
@@ -972,7 +979,7 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
             ->willReturn($queryBuilder);
 
         $queryBuilder->expects(self::once())
@@ -990,8 +997,8 @@ final class DataSnapshotRepositoryTest extends TestCase
             ->willReturn($result);
 
         $result->expects(self::once())
-            ->method('fetchAssociative')
-            ->willReturn($row);
+            ->method('fetchAllAssociative')
+            ->willReturn([$row]);
 
         $snapshot = $this->subject->findCurrentSnapshot();
 

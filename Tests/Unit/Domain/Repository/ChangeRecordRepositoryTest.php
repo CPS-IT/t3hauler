@@ -111,8 +111,8 @@ final class ChangeRecordRepositoryTest extends TestCase
         ];
 
         $result = $this->createMock(Result::class);
-        $result->method('fetchAssociative')
-            ->willReturnOnConsecutiveCalls($rows[0], false);
+        $result->method('fetchAllAssociative')
+            ->willReturn($rows);
 
         $this->queryBuilder->method('select')
             ->with('*')
@@ -156,8 +156,8 @@ final class ChangeRecordRepositoryTest extends TestCase
         $snapshotUid = 123;
 
         $result = $this->createMock(Result::class);
-        $result->method('fetchAssociative')
-            ->willReturn(false);
+        $result->method('fetchAllAssociative')
+            ->willReturn([]);
 
         $this->queryBuilder->method('select')
             ->with('*')
@@ -274,7 +274,7 @@ final class ChangeRecordRepositoryTest extends TestCase
             ->willReturn(42);
 
         $this->queryBuilder->method('count')
-            ->with('*')
+            ->with('uid')
             ->willReturn($this->queryBuilder);
 
         $this->queryBuilder->method('from')
@@ -299,8 +299,8 @@ final class ChangeRecordRepositoryTest extends TestCase
         $snapshotUid = 123;
 
         $result = $this->createMock(Result::class);
-        $result->method('fetchAssociative')
-            ->willReturn(false);
+        $result->method('fetchAllAssociative')
+            ->willReturn([]);
 
         $this->queryBuilder->method('select')
             ->with('*')
@@ -330,8 +330,8 @@ final class ChangeRecordRepositoryTest extends TestCase
         $correlationId = 't3h_abc123';
 
         $result = $this->createMock(Result::class);
-        $result->method('fetchAssociative')
-            ->willReturn(false);
+        $result->method('fetchAllAssociative')
+            ->willReturn([]);
 
         $this->queryBuilder->method('select')
             ->with('*')
@@ -362,8 +362,8 @@ final class ChangeRecordRepositoryTest extends TestCase
         $snapshotUid = 123;
 
         $result = $this->createMock(Result::class);
-        $result->method('fetchAssociative')
-            ->willReturn(false);
+        $result->method('fetchAllAssociative')
+            ->willReturn([]);
 
         $this->queryBuilder->method('select')
             ->with('*')

@@ -76,6 +76,7 @@ final class MigrationRepositoryTest extends TestCase
         $migration = $this->createMigration();
         $migration->setUid(456);
         $migrationData = $migration->toArray();
+        unset($migrationData['uid']); // AbstractRepository removes uid from data
 
         $this->connectionMock->expects(self::once())
             ->method('update')
@@ -131,10 +132,25 @@ final class MigrationRepositoryTest extends TestCase
     #[Test]
     public function deleteByMigrationIdReturnsTrueWhenMigrationIsDeleted(): void
     {
-        $this->connectionMock->expects(self::once())
+        $queryBuilder = $this->createQueryBuilderMock();
+
+        $queryBuilder->expects(self::once())
             ->method('delete')
-            ->with('tx_t3hauler_migrations', ['migration_id' => 'test-id'])
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('andWhere')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeStatement')
             ->willReturn(1);
+
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
+            ->willReturn($queryBuilder);
 
         $result = $this->subject->deleteByMigrationId('test-id');
 
@@ -144,10 +160,25 @@ final class MigrationRepositoryTest extends TestCase
     #[Test]
     public function deleteByMigrationIdReturnsFalseWhenNoRowsAffected(): void
     {
-        $this->connectionMock->expects(self::once())
+        $queryBuilder = $this->createQueryBuilderMock();
+
+        $queryBuilder->expects(self::once())
             ->method('delete')
-            ->with('tx_t3hauler_migrations', ['migration_id' => 'test-id'])
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('andWhere')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeStatement')
             ->willReturn(0);
+
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
+            ->willReturn($queryBuilder);
 
         $result = $this->subject->deleteByMigrationId('test-id');
 
@@ -254,6 +285,7 @@ final class MigrationRepositoryTest extends TestCase
         $migration->setUid(42);
 
         $expectedData = $migration->toArray();
+        unset($expectedData['uid']); // AbstractRepository removes uid from data
 
         $this->connectionMock->expects(self::once())
             ->method('update')
@@ -294,9 +326,25 @@ final class MigrationRepositoryTest extends TestCase
     #[DataProvider('deleteRowCountDataProvider')]
     public function deleteByMigrationIdReturnsCorrectBooleanBasedOnAffectedRows(int $affectedRows): void
     {
-        $this->connectionMock->expects(self::once())
+        $queryBuilder = $this->createQueryBuilderMock();
+
+        $queryBuilder->expects(self::once())
             ->method('delete')
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('andWhere')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeStatement')
             ->willReturn($affectedRows);
+
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
+            ->willReturn($queryBuilder);
 
         $result = $this->subject->deleteByMigrationId('test-id');
 
@@ -321,10 +369,25 @@ final class MigrationRepositoryTest extends TestCase
     #[DataProvider('migrationIdDataProvider')]
     public function deleteByMigrationIdAcceptsVariousMigrationIds(string $migrationId): void
     {
-        $this->connectionMock->expects(self::once())
+        $queryBuilder = $this->createQueryBuilderMock();
+
+        $queryBuilder->expects(self::once())
             ->method('delete')
-            ->with('tx_t3hauler_migrations', ['migration_id' => $migrationId])
+            ->with('tx_t3hauler_migrations')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('andWhere')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('executeStatement')
             ->willReturn(1);
+
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
+            ->willReturn($queryBuilder);
 
         $result = $this->subject->deleteByMigrationId($migrationId);
 
@@ -418,7 +481,12 @@ final class MigrationRepositoryTest extends TestCase
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('setMaxResults')
+            ->with(1)
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
@@ -426,11 +494,12 @@ final class MigrationRepositoryTest extends TestCase
             ->willReturn($result);
 
         $result->expects(self::once())
-            ->method('fetchAssociative')
-            ->willReturn(false);
+            ->method('fetchAllAssociative')
+            ->willReturn([]);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
         $migration = $this->subject->findByMigrationId('nonexistent-id');
@@ -469,7 +538,12 @@ final class MigrationRepositoryTest extends TestCase
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('setMaxResults')
+            ->with(1)
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
@@ -477,11 +551,12 @@ final class MigrationRepositoryTest extends TestCase
             ->willReturn($result);
 
         $result->expects(self::once())
-            ->method('fetchAssociative')
-            ->willReturn($migrationData);
+            ->method('fetchAllAssociative')
+            ->willReturn([$migrationData]);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
         $migration = $this->subject->findByMigrationId('test-id');
@@ -508,7 +583,12 @@ final class MigrationRepositoryTest extends TestCase
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('setMaxResults')
+            ->with(1)
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
@@ -516,11 +596,12 @@ final class MigrationRepositoryTest extends TestCase
             ->willReturn($result);
 
         $result->expects(self::once())
-            ->method('fetchAssociative')
-            ->willReturn(false);
+            ->method('fetchAllAssociative')
+            ->willReturn([]);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
         $migration = $this->subject->findByUid(999);
@@ -559,7 +640,12 @@ final class MigrationRepositoryTest extends TestCase
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::once())
+            ->method('setMaxResults')
+            ->with(1)
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
@@ -567,11 +653,12 @@ final class MigrationRepositoryTest extends TestCase
             ->willReturn($result);
 
         $result->expects(self::once())
-            ->method('fetchAssociative')
-            ->willReturn($migrationData);
+            ->method('fetchAllAssociative')
+            ->willReturn([$migrationData]);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
         $migration = $this->subject->findByUid(123);
@@ -610,8 +697,9 @@ final class MigrationRepositoryTest extends TestCase
             ->method('fetchAllAssociative')
             ->willReturn([]);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
         $migrations = $this->subject->findAll();
@@ -677,8 +765,9 @@ final class MigrationRepositoryTest extends TestCase
             ->method('fetchAllAssociative')
             ->willReturn($migrationData);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
         $migrations = $this->subject->findAll();
@@ -718,8 +807,9 @@ final class MigrationRepositoryTest extends TestCase
             ->method('fetchAllAssociative')
             ->willReturn([]);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
         $this->subject->findAll('name', 'ASC');
@@ -758,7 +848,7 @@ final class MigrationRepositoryTest extends TestCase
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
@@ -774,8 +864,9 @@ final class MigrationRepositoryTest extends TestCase
             ->method('fetchAllAssociative')
             ->willReturn($migrationData);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
         $migrations = $this->subject->findByStatus('pending');
@@ -793,12 +884,12 @@ final class MigrationRepositoryTest extends TestCase
 
         $queryBuilder->method('select')->willReturnSelf();
         $queryBuilder->method('from')->willReturnSelf();
-        $queryBuilder->method('where')->willReturnSelf();
+        $queryBuilder->method('andWhere')->willReturnSelf();
         $queryBuilder->method('orderBy')->willReturnSelf();
         $queryBuilder->method('executeQuery')->willReturn($result);
         $result->method('fetchAllAssociative')->willReturn([]);
 
-        $this->connectionMock->method('createQueryBuilder')->willReturn($queryBuilder);
+        $this->connectionPoolMock->method('getQueryBuilderForTable')->willReturn($queryBuilder);
 
         $migrations = $this->subject->findPending();
 
@@ -813,12 +904,12 @@ final class MigrationRepositoryTest extends TestCase
 
         $queryBuilder->method('select')->willReturnSelf();
         $queryBuilder->method('from')->willReturnSelf();
-        $queryBuilder->method('where')->willReturnSelf();
+        $queryBuilder->method('andWhere')->willReturnSelf();
         $queryBuilder->method('orderBy')->willReturnSelf();
         $queryBuilder->method('executeQuery')->willReturn($result);
         $result->method('fetchAllAssociative')->willReturn([]);
 
-        $this->connectionMock->method('createQueryBuilder')->willReturn($queryBuilder);
+        $this->connectionPoolMock->method('getQueryBuilderForTable')->willReturn($queryBuilder);
 
         $migrations = $this->subject->findApplied();
 
@@ -833,12 +924,12 @@ final class MigrationRepositoryTest extends TestCase
 
         $queryBuilder->method('select')->willReturnSelf();
         $queryBuilder->method('from')->willReturnSelf();
-        $queryBuilder->method('where')->willReturnSelf();
+        $queryBuilder->method('andWhere')->willReturnSelf();
         $queryBuilder->method('orderBy')->willReturnSelf();
         $queryBuilder->method('executeQuery')->willReturn($result);
         $result->method('fetchAllAssociative')->willReturn([]);
 
-        $this->connectionMock->method('createQueryBuilder')->willReturn($queryBuilder);
+        $this->connectionPoolMock->method('getQueryBuilderForTable')->willReturn($queryBuilder);
 
         $migrations = $this->subject->findFailed();
 
@@ -876,11 +967,12 @@ final class MigrationRepositoryTest extends TestCase
             ->willReturn($result);
 
         $result->expects(self::once())
-            ->method('fetchAssociative')
-            ->willReturn(false);
+            ->method('fetchAllAssociative')
+            ->willReturn([]);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
         $migration = $this->subject->findLatest();
@@ -933,11 +1025,12 @@ final class MigrationRepositoryTest extends TestCase
             ->willReturn($result);
 
         $result->expects(self::once())
-            ->method('fetchAssociative')
-            ->willReturn($migrationData);
+            ->method('fetchAllAssociative')
+            ->willReturn([$migrationData]);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
         $migration = $this->subject->findLatest();
@@ -963,7 +1056,7 @@ final class MigrationRepositoryTest extends TestCase
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
@@ -974,8 +1067,9 @@ final class MigrationRepositoryTest extends TestCase
             ->method('fetchOne')
             ->willReturn(0);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
         $exists = $this->subject->exists('nonexistent-id');
@@ -1000,7 +1094,7 @@ final class MigrationRepositoryTest extends TestCase
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
@@ -1011,8 +1105,9 @@ final class MigrationRepositoryTest extends TestCase
             ->method('fetchOne')
             ->willReturn(1);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
         $exists = $this->subject->exists('existing-id');
@@ -1037,7 +1132,7 @@ final class MigrationRepositoryTest extends TestCase
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
-            ->method('where')
+            ->method('andWhere')
             ->willReturnSelf();
 
         $queryBuilder->expects(self::once())
@@ -1048,8 +1143,9 @@ final class MigrationRepositoryTest extends TestCase
             ->method('fetchOne')
             ->willReturn(5);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
         $count = $this->subject->countByStatus('pending');
@@ -1081,8 +1177,9 @@ final class MigrationRepositoryTest extends TestCase
             ->method('fetchOne')
             ->willReturn(10);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
         $count = $this->subject->count();
@@ -1098,11 +1195,11 @@ final class MigrationRepositoryTest extends TestCase
 
         $queryBuilder->method('count')->willReturnSelf();
         $queryBuilder->method('from')->willReturnSelf();
-        $queryBuilder->method('where')->willReturnSelf();
+        $queryBuilder->method('andWhere')->willReturnSelf();
         $queryBuilder->method('executeQuery')->willReturn($result);
         $result->method('fetchOne')->willReturnOnConsecutiveCalls(20, 5, 10, 3, 2);
 
-        $this->connectionMock->method('createQueryBuilder')->willReturn($queryBuilder);
+        $this->connectionPoolMock->method('getQueryBuilderForTable')->willReturn($queryBuilder);
 
         $summary = $this->subject->getSummary();
 
@@ -1115,7 +1212,7 @@ final class MigrationRepositoryTest extends TestCase
     }
 
     #[Test]
-    public function deleteOlderThanDeletesOldMigrations(): void
+    public function deleteMigrationsOlderThanDeletesOldMigrations(): void
     {
         $date = new \DateTime('2023-01-01');
         $queryBuilder = $this->createQueryBuilderMock();
@@ -1133,11 +1230,12 @@ final class MigrationRepositoryTest extends TestCase
             ->method('executeStatement')
             ->willReturn(3);
 
-        $this->connectionMock->expects(self::once())
-            ->method('createQueryBuilder')
+        $this->connectionPoolMock->expects(self::once())
+            ->method('getQueryBuilderForTable')
+            ->with('tx_t3hauler_migrations')
             ->willReturn($queryBuilder);
 
-        $deletedCount = $this->subject->deleteOlderThan($date);
+        $deletedCount = $this->subject->deleteMigrationsOlderThan($date);
 
         self::assertEquals(3, $deletedCount);
     }

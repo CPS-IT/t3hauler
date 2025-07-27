@@ -6,30 +6,20 @@ namespace Cpsit\T3hauler\Domain\Repository;
 
 use Cpsit\T3hauler\Domain\Enumeration\RecordChangeType;
 use Cpsit\T3hauler\Domain\Model\ChangeRecord;
-use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\SingletonInterface;
 
 /**
  * Repository for ChangeRecord domain model
  */
-class ChangeRecordRepository implements SingletonInterface
+class ChangeRecordRepository extends AbstractRepository implements SingletonInterface
 {
-    private const TABLE_NAME = 'tx_t3hauler_change_records';
-
-    private ConnectionPool $connectionPool;
-
-    public function __construct(ConnectionPool $connectionPool)
-    {
-        $this->connectionPool = $connectionPool;
-    }
+    protected const string TABLE_NAME = 'tx_t3hauler_change_records';
 
     /**
      * Add a change record
      */
     public function add(ChangeRecord $changeRecord): void
     {
-        $connection = $this->connectionPool->getConnectionForTable(self::TABLE_NAME);
-
         $data = [
             'snapshot_uid' => $changeRecord->getSnapshotUid(),
             'table_name' => $changeRecord->getTableName(),
@@ -46,10 +36,8 @@ class ChangeRecordRepository implements SingletonInterface
             'correlation_id' => $changeRecord->getCorrelationId(),
         ];
 
-        $connection->insert(self::TABLE_NAME, $data);
-
-        // Set the UID from the inserted record
-        $changeRecord->setUid((int)$connection->lastInsertId());
+        $uid = $this->insertRecord($data);
+        $changeRecord->setUid($uid);
     }
 
     /**
@@ -57,24 +45,11 @@ class ChangeRecordRepository implements SingletonInterface
      */
     public function findBySnapshotUid(int $snapshotUid): array
     {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable(self::TABLE_NAME);
-
-        $result = $queryBuilder
-            ->select('*')
-            ->from(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->eq('snapshot_uid', $queryBuilder->createNamedParameter($snapshotUid))
-            )
-            ->orderBy('detected_at', 'ASC')
-            ->orderBy('uid', 'ASC')
-            ->executeQuery();
-
-        $changes = [];
-        while ($row = $result->fetchAssociative()) {
-            $changes[] = $this->mapRowToChangeRecord($row);
-        }
-
-        return $changes;
+        $rows = $this->findByConditions(
+            ['snapshot_uid' => $snapshotUid],
+            ['detected_at' => 'ASC', 'uid' => 'ASC']
+        );
+        return $this->mapRowsToObjects($rows, [$this, 'mapRowToChangeRecord']);
     }
 
     /**
@@ -82,25 +57,15 @@ class ChangeRecordRepository implements SingletonInterface
      */
     public function findByTableAndRecord(string $tableName, int $recordUid, int $snapshotUid): array
     {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable(self::TABLE_NAME);
-
-        $result = $queryBuilder
-            ->select('*')
-            ->from(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->eq('snapshot_uid', $queryBuilder->createNamedParameter($snapshotUid)),
-                $queryBuilder->expr()->eq('table_name', $queryBuilder->createNamedParameter($tableName)),
-                $queryBuilder->expr()->eq('record_uid', $queryBuilder->createNamedParameter($recordUid))
-            )
-            ->orderBy('detected_at', 'ASC')
-            ->executeQuery();
-
-        $changes = [];
-        while ($row = $result->fetchAssociative()) {
-            $changes[] = $this->mapRowToChangeRecord($row);
-        }
-
-        return $changes;
+        $rows = $this->findByConditions(
+            [
+                'snapshot_uid' => $snapshotUid,
+                'table_name' => $tableName,
+                'record_uid' => $recordUid,
+            ],
+            ['detected_at' => 'ASC']
+        );
+        return $this->mapRowsToObjects($rows, [$this, 'mapRowToChangeRecord']);
     }
 
     /**
@@ -108,24 +73,14 @@ class ChangeRecordRepository implements SingletonInterface
      */
     public function findByTableName(string $tableName, int $snapshotUid): array
     {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable(self::TABLE_NAME);
-
-        $result = $queryBuilder
-            ->select('*')
-            ->from(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->eq('snapshot_uid', $queryBuilder->createNamedParameter($snapshotUid)),
-                $queryBuilder->expr()->eq('table_name', $queryBuilder->createNamedParameter($tableName))
-            )
-            ->orderBy('detected_at', 'ASC')
-            ->executeQuery();
-
-        $changes = [];
-        while ($row = $result->fetchAssociative()) {
-            $changes[] = $this->mapRowToChangeRecord($row);
-        }
-
-        return $changes;
+        $rows = $this->findByConditions(
+            [
+                'snapshot_uid' => $snapshotUid,
+                'table_name' => $tableName,
+            ],
+            ['detected_at' => 'ASC']
+        );
+        return $this->mapRowsToObjects($rows, [$this, 'mapRowToChangeRecord']);
     }
 
     /**
@@ -133,24 +88,14 @@ class ChangeRecordRepository implements SingletonInterface
      */
     public function findByChangeType(string $changeType, int $snapshotUid): array
     {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable(self::TABLE_NAME);
-
-        $result = $queryBuilder
-            ->select('*')
-            ->from(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->eq('snapshot_uid', $queryBuilder->createNamedParameter($snapshotUid)),
-                $queryBuilder->expr()->eq('change_type', $queryBuilder->createNamedParameter($changeType))
-            )
-            ->orderBy('detected_at', 'ASC')
-            ->executeQuery();
-
-        $changes = [];
-        while ($row = $result->fetchAssociative()) {
-            $changes[] = $this->mapRowToChangeRecord($row);
-        }
-
-        return $changes;
+        $rows = $this->findByConditions(
+            [
+                'snapshot_uid' => $snapshotUid,
+                'change_type' => $changeType,
+            ],
+            ['detected_at' => 'ASC']
+        );
+        return $this->mapRowsToObjects($rows, [$this, 'mapRowToChangeRecord']);
     }
 
     /**
@@ -158,23 +103,11 @@ class ChangeRecordRepository implements SingletonInterface
      */
     public function findByCorrelationId(string $correlationId): array
     {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable(self::TABLE_NAME);
-
-        $result = $queryBuilder
-            ->select('*')
-            ->from(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->eq('correlation_id', $queryBuilder->createNamedParameter($correlationId))
-            )
-            ->orderBy('detected_at', 'ASC')
-            ->executeQuery();
-
-        $changes = [];
-        while ($row = $result->fetchAssociative()) {
-            $changes[] = $this->mapRowToChangeRecord($row);
-        }
-
-        return $changes;
+        $rows = $this->findByConditions(
+            ['correlation_id' => $correlationId],
+            ['detected_at' => 'ASC']
+        );
+        return $this->mapRowsToObjects($rows, [$this, 'mapRowToChangeRecord']);
     }
 
     /**
@@ -182,12 +115,12 @@ class ChangeRecordRepository implements SingletonInterface
      */
     public function getStatistics(int $snapshotUid): array
     {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable(self::TABLE_NAME);
+        $queryBuilder = $this->getQueryBuilder();
 
         $result = $queryBuilder
             ->select('change_type')
             ->addSelectLiteral('COUNT(*) as count')
-            ->from(self::TABLE_NAME)
+            ->from(static::TABLE_NAME)
             ->where(
                 $queryBuilder->expr()->eq('snapshot_uid', $queryBuilder->createNamedParameter($snapshotUid))
             )
@@ -215,14 +148,7 @@ class ChangeRecordRepository implements SingletonInterface
      */
     public function deleteBySnapshotUid(int $snapshotUid): void
     {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable(self::TABLE_NAME);
-
-        $queryBuilder
-            ->delete(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->eq('snapshot_uid', $queryBuilder->createNamedParameter($snapshotUid))
-            )
-            ->executeStatement();
+        $this->deleteByConditions(['snapshot_uid' => $snapshotUid]);
     }
 
     /**
@@ -230,16 +156,8 @@ class ChangeRecordRepository implements SingletonInterface
      */
     public function deleteOldRecords(int $days): void
     {
-        $threshold = time() - ($days * 24 * 60 * 60);
-
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable(self::TABLE_NAME);
-
-        $queryBuilder
-            ->delete(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->lt('detected_at', $queryBuilder->createNamedParameter($threshold))
-            )
-            ->executeStatement();
+        $threshold = new \DateTimeImmutable('@' . (time() - ($days * 24 * 60 * 60)));
+        parent::deleteOlderThan('detected_at', $threshold);
     }
 
     /**
@@ -247,22 +165,13 @@ class ChangeRecordRepository implements SingletonInterface
      */
     public function countBySnapshotUid(int $snapshotUid): int
     {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable(self::TABLE_NAME);
-
-        return (int)$queryBuilder
-            ->count('*')
-            ->from(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->eq('snapshot_uid', $queryBuilder->createNamedParameter($snapshotUid))
-            )
-            ->executeQuery()
-            ->fetchOne();
+        return $this->countByConditions(['snapshot_uid' => $snapshotUid]);
     }
 
     /**
      * Map database row to ChangeRecord object
      */
-    private function mapRowToChangeRecord(array $row): ChangeRecord
+    protected function mapRowToChangeRecord(array $row): ChangeRecord
     {
         $changeRecord = new ChangeRecord();
         $changeRecord->setUid((int)$row['uid']);
