@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Traits\Command;
 
-use Cpsit\T3hauler\Command\Option\DryRunOption;
-use Cpsit\T3hauler\Command\Option\ForceOption;
-use Cpsit\T3hauler\Command\Option\ValidateOption;
-use Cpsit\T3hauler\Command\Option\LimitOption;
-use Cpsit\T3hauler\Command\Option\FilterOption;
-use Cpsit\T3hauler\Command\Option\IdentifierOption;
-use Cpsit\T3hauler\Command\Option\MigrationVersionOption;
 use Cpsit\T3hauler\Command\Option\AuthorOption;
-use Cpsit\T3hauler\Command\Option\SiteOption;
-use Cpsit\T3hauler\Command\Option\TableOption;
+use Cpsit\T3hauler\Command\Option\DryRunOption;
+use Cpsit\T3hauler\Command\Option\FilterOption;
+use Cpsit\T3hauler\Command\Option\ForceOption;
 use Cpsit\T3hauler\Command\Option\FormatOption;
-use Cpsit\T3hauler\Command\Option\StatusOption;
+use Cpsit\T3hauler\Command\Option\IdentifierOption;
+use Cpsit\T3hauler\Command\Option\LimitOption;
+use Cpsit\T3hauler\Command\Option\MigrationVersionOption;
 use Cpsit\T3hauler\Command\Option\PathOption;
+use Cpsit\T3hauler\Command\Option\SiteOption;
+use Cpsit\T3hauler\Command\Option\StatusOption;
+use Cpsit\T3hauler\Command\Option\TableOption;
+use Cpsit\T3hauler\Command\Option\ValidateOption;
 use Symfony\Component\Console\Input\InputInterface;
 
 /**
@@ -29,7 +29,7 @@ trait CommandOptionsTrait
      */
     protected function isDryRun(InputInterface $input): bool
     {
-        return (bool) $input->getOption(DryRunOption::NAME);
+        return (bool)$input->getOption(DryRunOption::NAME);
     }
 
     /**
@@ -37,7 +37,7 @@ trait CommandOptionsTrait
      */
     protected function isForced(InputInterface $input): bool
     {
-        return (bool) $input->getOption(ForceOption::NAME);
+        return (bool)$input->getOption(ForceOption::NAME);
     }
 
     /**
@@ -53,7 +53,7 @@ trait CommandOptionsTrait
      */
     protected function shouldValidate(InputInterface $input): bool
     {
-        return (bool) $input->getOption(ValidateOption::NAME);
+        return (bool)$input->getOption(ValidateOption::NAME);
     }
 
     /**
@@ -75,10 +75,10 @@ trait CommandOptionsTrait
             return null;
         }
 
-        $limitInt = (int) $limit;
+        $limitInt = (int)$limit;
 
         if ($limitInt <= 0) {
-            throw new \InvalidArgumentException('Limit must be a positive integer');
+            throw new \InvalidArgumentException('Limit must be a positive integer', 2255118346);
         }
 
         return $limitInt;
@@ -95,7 +95,7 @@ trait CommandOptionsTrait
             return null;
         }
 
-        $trimmed = trim((string) $filter);
+        $trimmed = trim((string)$filter);
         return $trimmed !== '' ? $trimmed : null;
     }
 
@@ -106,7 +106,7 @@ trait CommandOptionsTrait
     {
         $identifier = $input->getOption(IdentifierOption::NAME);
 
-        return $identifier ? trim((string) $identifier) : null;
+        return $identifier ? trim((string)$identifier) : null;
     }
 
     /**
@@ -116,7 +116,7 @@ trait CommandOptionsTrait
     {
         $version = $input->getOption(MigrationVersionOption::NAME);
 
-        return $version ? trim((string) $version) : null;
+        return $version ? trim((string)$version) : null;
     }
 
     /**
@@ -126,7 +126,7 @@ trait CommandOptionsTrait
     {
         $author = $input->getOption(AuthorOption::NAME);
 
-        return $author ? trim((string) $author) : null;
+        return $author ? trim((string)$author) : null;
     }
 
     /**
@@ -136,7 +136,7 @@ trait CommandOptionsTrait
     {
         $site = $input->getOption(SiteOption::NAME);
 
-        return $site ? trim((string) $site) : null;
+        return $site ? trim((string)$site) : null;
     }
 
     /**
@@ -146,7 +146,7 @@ trait CommandOptionsTrait
     {
         $table = $input->getOption(TableOption::NAME);
 
-        return $table ? trim((string) $table) : null;
+        return $table ? trim((string)$table) : null;
     }
 
     /**
@@ -156,7 +156,7 @@ trait CommandOptionsTrait
     {
         $format = $input->getOption(FormatOption::NAME);
 
-        return $format ? trim((string) $format) : null;
+        return $format ? trim((string)$format) : null;
     }
 
     /**
@@ -166,7 +166,7 @@ trait CommandOptionsTrait
     {
         $status = $input->getOption(StatusOption::NAME);
 
-        return $status ? trim((string) $status) : null;
+        return $status ? trim((string)$status) : null;
     }
 
     /**
@@ -176,7 +176,7 @@ trait CommandOptionsTrait
     {
         $path = $input->getOption(PathOption::NAME);
 
-        return $path ? trim((string) $path) : null;
+        return $path ? trim((string)$path) : null;
     }
 
     /**

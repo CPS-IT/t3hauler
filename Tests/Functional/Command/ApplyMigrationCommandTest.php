@@ -268,8 +268,8 @@ final class ApplyMigrationCommandTest extends FunctionalTestCase
 
         // Execute command with force - should succeed (reuse the existing CommandTester)
         // Clear any previous output first by getting the display (which clears it)
-        $this->commandTester->getDisplay(); 
-        
+        $this->commandTester->getDisplay();
+
         $exitCode = $this->commandTester->execute([
             'migration' => $migrationId,
             '--force' => true,
@@ -278,7 +278,7 @@ final class ApplyMigrationCommandTest extends FunctionalTestCase
         self::assertSame(Command::SUCCESS, $exitCode);
 
         $output = $this->commandTester->getDisplay();
-        
+
         self::assertStringContainsString('Force mode enabled - retrying migration', $output);
         self::assertStringContainsString('Migration applied successfully', $output);
     }

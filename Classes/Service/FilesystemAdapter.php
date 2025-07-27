@@ -15,6 +15,10 @@ class FilesystemAdapter implements FilesystemInterface
 {
     public function exists(string $path): bool
     {
+        // Handle TYPO3 extension paths
+        if (str_starts_with($path, 'EXT:')) {
+            $path = GeneralUtility::getFileAbsFileName($path);
+        }
         return file_exists($path);
     }
 
@@ -30,6 +34,10 @@ class FilesystemAdapter implements FilesystemInterface
 
     public function getFileContents(string $path): string|false
     {
+        // Handle TYPO3 extension paths
+        if (str_starts_with($path, 'EXT:')) {
+            $path = GeneralUtility::getFileAbsFileName($path);
+        }
         return file_get_contents($path);
     }
 
@@ -45,6 +53,10 @@ class FilesystemAdapter implements FilesystemInterface
 
     public function getFileSize(string $path): int|false
     {
+        // Handle TYPO3 extension paths
+        if (str_starts_with($path, 'EXT:')) {
+            $path = GeneralUtility::getFileAbsFileName($path);
+        }
         return filesize($path);
     }
 

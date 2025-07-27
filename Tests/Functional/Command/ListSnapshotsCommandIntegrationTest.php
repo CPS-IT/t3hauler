@@ -65,11 +65,11 @@ final class ListSnapshotsCommandIntegrationTest extends FunctionalTestCase
     #[Test]
     public function refactoredCommandWorksCorrectlyEndToEnd(): void
     {
-        // 1. Test empty state - should show warning and configuration info  
+        // 1. Test empty state - should show warning and configuration info
         $exitCode = $this->commandTester->execute([]);
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         self::assertStringContainsString('No snapshots found', $output);
 
         // 2. Create test data
@@ -81,7 +81,7 @@ final class ListSnapshotsCommandIntegrationTest extends FunctionalTestCase
             'pages' => [['uid' => 3, 'title' => 'Contact']],
             'tt_content' => [['uid' => 2, 'header' => 'Contact Info'], ['uid' => 3, 'header' => 'Address']],
         ];
-        
+
         $this->createTestSnapshot('snapshot-2023-01-01', $tableData1, new \DateTime('-2 days'));
         $this->createTestSnapshot('snapshot-2023-01-02', $tableData2, new \DateTime('-1 day'));
 
@@ -90,18 +90,18 @@ final class ListSnapshotsCommandIntegrationTest extends FunctionalTestCase
         $snapshotRepository = $container->get(DataSnapshotRepository::class);
         $allSnapshots = $snapshotRepository->findAll();
         self::assertCount(2, $allSnapshots, 'Snapshots should exist in database before command execution');
-        
+
         // 3. Test basic listing - should show snapshots in table format
-        $exitCode = $this->commandTester->execute([]);  
+        $exitCode = $this->commandTester->execute([]);
         $output = $this->commandTester->getDisplay();
-        
+
         // Skip this test if command produces no output (known integration issue)
         if (empty(trim($output))) {
             self::markTestSkipped('Integration test has command execution issue - main functionality tested in ListSnapshotsCommandTest');
         }
-        
+
         self::assertSame(Command::SUCCESS, $exitCode, 'Command should return SUCCESS status');
-        
+
         self::assertStringContainsString('t3hauler Snapshots', $output);
         self::assertStringContainsString('snapshot-2023-01-01', $output);
         self::assertStringContainsString('snapshot-2023-01-02', $output);
@@ -113,22 +113,22 @@ final class ListSnapshotsCommandIntegrationTest extends FunctionalTestCase
         $exitCode = $this->commandTester->execute(['--limit' => '1']);
         self::assertSame(Command::SUCCESS, $exitCode, 'Limit option command should succeed');
         $output = $this->commandTester->getDisplay();
-        
+
         if (empty(trim($output))) {
             self::fail('Limit option test: Command output is empty. Error: ' . $this->commandTester->getErrorOutput());
         }
-        
+
         self::assertStringContainsString('t3hauler Snapshots', $output);
 
         // 5. Test filter option
         $exitCode = $this->commandTester->execute(['--filter' => '2023-01-01']);
         self::assertSame(Command::SUCCESS, $exitCode, 'Filter option command should succeed');
         $output = $this->commandTester->getDisplay();
-        
+
         if (empty(trim($output))) {
             self::fail('Filter option test: Command output is empty. Error: ' . $this->commandTester->getErrorOutput());
         }
-        
+
         self::assertStringContainsString('snapshot-2023-01-01', $output);
         self::assertStringNotContainsString('snapshot-2023-01-02', $output);
 
@@ -136,7 +136,7 @@ final class ListSnapshotsCommandIntegrationTest extends FunctionalTestCase
         $exitCode = $this->commandTester->execute(['--details' => true]);
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         self::assertStringContainsString('Snapshot: snapshot-2023-01-01', $output);
         self::assertStringContainsString('Snapshot: snapshot-2023-01-02', $output);
         self::assertStringContainsString('Details', $output);
@@ -147,11 +147,11 @@ final class ListSnapshotsCommandIntegrationTest extends FunctionalTestCase
         // 7. Test ordering options
         $exitCode = $this->commandTester->execute([
             '--order' => 'created_at',
-            '--direction' => 'desc'
+            '--direction' => 'desc',
         ]);
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         self::assertStringContainsString('t3hauler Snapshots', $output);
 
         // 8. Test combination of options
@@ -163,7 +163,7 @@ final class ListSnapshotsCommandIntegrationTest extends FunctionalTestCase
         ]);
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         self::assertStringContainsString('t3hauler Snapshots', $output);
         self::assertStringContainsString('Snapshot Summary', $output);
 
@@ -191,7 +191,7 @@ final class ListSnapshotsCommandIntegrationTest extends FunctionalTestCase
 
         // Command should handle this gracefully using trait-based error handling
         $exitCode = $this->commandTester->execute([]);
-        
+
         // Should complete successfully despite the malformed data
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
@@ -209,19 +209,19 @@ final class ListSnapshotsCommandIntegrationTest extends FunctionalTestCase
         for ($i = 0; $i < 100; $i++) {
             $largeData['pages'][] = ['uid' => $i, 'title' => 'Page ' . $i, 'content' => str_repeat('x', 100)];
         }
-        
+
         $this->createTestSnapshot('large-snapshot', $largeData);
 
         $exitCode = $this->commandTester->execute([]);
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Should show formatted file size
         self::assertStringContainsString('large-snapshot', $output);
-        
+
         // Should truncate hash in table view (trait method)
         self::assertStringContainsString('Hash', $output);
-        
+
         // Should calculate total records correctly (trait method)
         self::assertStringContainsString('100', $output);
     }

@@ -6,6 +6,7 @@ namespace Cpsit\T3hauler\Command;
 
 use Cpsit\T3hauler\Command\Argument\KeepDaysArgument;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
+use Cpsit\T3hauler\Traits\Command\CommandValidationTrait;
 use DWenzel\T3extensionTools\Command\ArgumentAwareInterface;
 use DWenzel\T3extensionTools\Traits\Command\ArgumentAwareTrait;
 use DWenzel\T3extensionTools\Traits\Command\ConfigureTrait;
@@ -27,6 +28,7 @@ class CleanupSnapshotsCommand extends Command implements ArgumentAwareInterface
 {
     use ArgumentAwareTrait;
     use ConfigureTrait;
+    use CommandValidationTrait;
 
     public const string MESSAGE_DESCRIPTION_COMMAND = 'Cleanup database snapshots';
     public const string MESSAGE_HELP_COMMAND = 'This command allows you manage baseline snapshots for change detection.';
@@ -46,12 +48,12 @@ class CleanupSnapshotsCommand extends Command implements ArgumentAwareInterface
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $keepDays = $input->getArgument(KeepDaysArgument::NAME);
 
         $io->title('t3hauler - Create Snapshot');
 
         try {
-            return $this->cleanupSnapshots($io, (int)$keepDays);
+            $keepDays = $this->getKeepDaysArgument($input);
+            return $this->cleanupSnapshots($io, $keepDays);
         } catch (\Exception $e) {
             $io->error('Error managing snapshots: ' . $e->getMessage());
             return Command::FAILURE;
@@ -61,11 +63,6 @@ class CleanupSnapshotsCommand extends Command implements ArgumentAwareInterface
     private function cleanupSnapshots(SymfonyStyle $io, int $keepDays): int
     {
         $io->section("Cleaning up snapshots older than {$keepDays} days");
-
-        if ($keepDays < 0) {
-            $io->error('Keep days must not be less than 0.');
-            return Command::FAILURE;
-        }
 
         $io->note("This will delete all snapshots older than {$keepDays} days.");
 

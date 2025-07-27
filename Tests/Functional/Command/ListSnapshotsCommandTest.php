@@ -6,7 +6,6 @@ namespace Cpsit\T3hauler\Tests\Functional\Command;
 
 use Cpsit\T3hauler\Command\ListSnapshotsCommand;
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
-use Cpsit\T3hauler\Domain\Model\DataSnapshot;
 use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
 use Cpsit\T3hauler\Tests\Functional\TestingUtilities;
 use PHPUnit\Framework\Attributes\Test;
@@ -77,7 +76,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Should complete successfully and show either snapshots or warning
         self::assertNotEmpty(trim($output));
     }
@@ -92,10 +91,10 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Verify trait-based warning reporting
         self::assertStringContainsString('No snapshots found', $output);
-        
+
         // Should display snapshot configuration info using trait methods
         self::assertStringContainsString('Snapshot Configuration', $output);
         self::assertStringContainsString('To create a snapshot, use: t3hauler:snapshot:create', $output);
@@ -116,7 +115,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Should show snapshots with limit applied
         self::assertStringContainsString('t3hauler Snapshots', $output);
         self::assertNotEmpty(trim($output));
@@ -138,7 +137,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Should show filtered snapshots
         self::assertStringContainsString('t3hauler Snapshots', $output);
         self::assertStringContainsString('test-snapshot-1', $output);
@@ -164,7 +163,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Should show detailed view with sections
         self::assertStringContainsString('Snapshot: detailed-test', $output);
         self::assertStringContainsString('Details', $output);
@@ -190,7 +189,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Should show snapshots ordered by creation date
         self::assertStringContainsString('t3hauler Snapshots', $output);
         self::assertStringContainsString('older-snapshot', $output);
@@ -213,7 +212,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Should show snapshots ordered by hash
         self::assertStringContainsString('t3hauler Snapshots', $output);
         self::assertNotEmpty(trim($output));
@@ -237,7 +236,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Command should handle multiple options gracefully using trait methods
         self::assertStringContainsString('t3hauler Snapshots', $output);
         self::assertNotEmpty(trim($output));
@@ -260,14 +259,14 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Should show properly formatted table with headers
         self::assertStringContainsString('Snapshot ID', $output);
         self::assertStringContainsString('Created', $output);
         self::assertStringContainsString('Records', $output);
         self::assertStringContainsString('Size', $output);
         self::assertStringContainsString('Hash', $output);
-        
+
         // Should show formatted record count and size
         self::assertStringContainsString('150', $output); // Total records
         self::assertStringContainsString('format-test', $output);
@@ -291,7 +290,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Should show summary table with statistics
         self::assertStringContainsString('Snapshot Summary', $output);
         self::assertStringContainsString('Total snapshots', $output);
@@ -317,7 +316,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Verify verbose output includes expected information
         self::assertStringContainsString('t3hauler Snapshots', $output);
         self::assertNotEmpty(trim($output));
@@ -331,10 +330,10 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
     {
         // Command should handle exceptions using trait-based error handling
         $exitCode = $this->commandTester->execute([]);
-        
+
         // Command should either succeed or fail gracefully
         self::assertContains($exitCode, [Command::SUCCESS, Command::FAILURE]);
-        
+
         // Should produce some output
         $output = $this->commandTester->getDisplay();
         self::assertNotEmpty(trim($output));
@@ -350,10 +349,10 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Verify trait-based methods are used for output formatting
         // Warning should be displayed using reportWarning() trait method if no snapshots
-        if (strpos($output, 'No snapshots found') !== false) {
+        if (str_contains($output, 'No snapshots found')) {
             self::assertStringContainsString('No snapshots found', $output);
             self::assertStringContainsString('Snapshot Configuration', $output);
         } else {
@@ -374,7 +373,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Verify trait-based table display is working
         self::assertStringContainsString('t3hauler Snapshots', $output);
         self::assertStringContainsString('Snapshots', $output); // Table title
@@ -399,7 +398,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
         ]);
 
         self::assertSame(Command::SUCCESS, $exitCode);
-        
+
         // Command should execute successfully with trait-based option extraction
         $output = $this->commandTester->getDisplay();
         self::assertNotEmpty(trim($output));
@@ -415,14 +414,14 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
         $exitCode = $this->commandTester->execute([]);
 
         self::assertSame(Command::SUCCESS, $exitCode);
-        
+
         $output = $this->commandTester->getDisplay();
-        
+
         // Should have proper output using trait methods
         self::assertNotEmpty(trim($output));
-        
+
         // If no snapshots, should show warning message
-        if (strpos($output, 'No snapshots found') !== false) {
+        if (str_contains($output, 'No snapshots found')) {
             self::assertStringContainsString('No snapshots found', $output);
         }
     }
@@ -437,14 +436,14 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         // Command should execute successfully
         self::assertSame(Command::SUCCESS, $exitCode);
-        
+
         $output = $this->commandTester->getDisplay();
-        
+
         // Should produce output and handle the case where no snapshots are found appropriately
         self::assertNotEmpty(trim($output));
-        
+
         // Should handle the case where no snapshots are found
-        if (strpos($output, 'No snapshots found') !== false) {
+        if (str_contains($output, 'No snapshots found')) {
             self::assertStringContainsString('No snapshots found', $output);
         } else {
             // If snapshots exist, should show the title
@@ -462,7 +461,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         // The safeExecute wrapper should ensure the command always returns a valid exit code
         self::assertContains($exitCode, [Command::SUCCESS, Command::FAILURE, Command::INVALID]);
-        
+
         $output = $this->commandTester->getDisplay();
         self::assertNotEmpty(trim($output));
     }
@@ -481,7 +480,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Should show formatted file size (KB or MB)
         self::assertNotEmpty(trim($output));
         self::assertStringContainsString('large-snapshot', $output);
@@ -499,7 +498,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Hash should be truncated to 10 characters in table view
         self::assertNotEmpty(trim($output));
         self::assertStringContainsString('Hash', $output);
@@ -524,12 +523,12 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Should show properly formatted sections using trait methods
         self::assertStringContainsString('Snapshot: section-test', $output);
         self::assertStringContainsString('Details', $output);
         self::assertStringContainsString('Table Data', $output);
-        
+
         // Should show all tables with record counts
         self::assertStringContainsString('pages', $output);
         self::assertStringContainsString('tt_content', $output);
@@ -546,7 +545,7 @@ final class ListSnapshotsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Should show configuration information using trait methods
         self::assertStringContainsString('Snapshot Configuration', $output);
         self::assertStringContainsString('To create a snapshot, use: t3hauler:snapshot:create', $output);

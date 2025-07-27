@@ -88,7 +88,7 @@ final class DiffCommandTest extends FunctionalTestCase
         self::assertSame(Command::SUCCESS, $exitCode);
 
         $output = $this->commandTester->getDisplay();
-        
+
         // Verify the command shows the expected content
         // The exact message is "Changes detected! Use 't3hauler:create' to generate a migration."
         self::assertStringContainsString('Changes detected', $output);

@@ -16,11 +16,12 @@ use Cpsit\T3hauler\Domain\Repository\MigrationRepository;
 use Cpsit\T3hauler\Exception\MigrationNotFoundException;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
 use Cpsit\T3hauler\Service\ImportService;
-use Cpsit\T3hauler\Traits\Command\CommandInputOutputTrait;
 use Cpsit\T3hauler\Traits\Command\CommandErrorHandlingTrait;
+use Cpsit\T3hauler\Traits\Command\CommandInputOutputTrait;
+use Cpsit\T3hauler\Traits\Command\CommandOptionsTrait;
 use Cpsit\T3hauler\Traits\Command\CommandProgressTrait;
 use Cpsit\T3hauler\Traits\Command\CommandUtilityTrait;
-use Cpsit\T3hauler\Traits\Command\CommandOptionsTrait;
+use Cpsit\T3hauler\Traits\Command\CommandValidationTrait;
 use DWenzel\T3extensionTools\Command\ArgumentAwareInterface;
 use DWenzel\T3extensionTools\Command\OptionAwareInterface;
 use DWenzel\T3extensionTools\Traits\Command\ArgumentAwareTrait;
@@ -53,6 +54,7 @@ class ApplyMigrationCommand extends Command implements ArgumentAwareInterface, O
     use CommandProgressTrait;
     use CommandUtilityTrait;
     use CommandOptionsTrait;
+    use CommandValidationTrait;
 
     public const string MESSAGE_DESCRIPTION_COMMAND = 'Apply migration from filesystem with validation';
     public const string MESSAGE_HELP_COMMAND = 'This command finds migration files in configured paths and applies them to the target environment with integrity validation. The local repository tracks applied migrations for this instance only.';
@@ -86,10 +88,21 @@ class ApplyMigrationCommand extends Command implements ArgumentAwareInterface, O
         $this->initializeIO($input, $output);
 
         return $this->safeExecute(function () use ($input): int {
-            $migrationId = $input->getArgument(MigrationArgument::NAME);
+            $migrationId = $this->getMigrationArgument($input);
+            // Only validate format if it looks like a valid migration ID structure
+            if (preg_match('/^\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}_[a-f0-9]{8}$/', $migrationId)) {
+                $migrationId = $this->validateMigrationId($migrationId);
+            }
             $validate = $this->isValidateEnabled($input);
             $dryRun = $this->isDryRun($input);
             $force = $this->isForceMode($input);
+
+            // Validate option combination for safety
+            $this->validateOptionCombination([
+                'force' => $force,
+                'validate' => $validate,
+                'dry_run' => $dryRun,
+            ]);
 
             $this->displayCommandTitle('t3hauler - Apply Migration');
 

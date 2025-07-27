@@ -33,7 +33,7 @@ trait CommandInputOutputTrait
     protected function getIO(): SymfonyStyle
     {
         if ($this->io === null) {
-            throw new \LogicException('IO not initialized. Call initializeIO() first.');
+            throw new \LogicException('IO not initialized. Call initializeIO() first.', 2086919673);
         }
 
         return $this->io;

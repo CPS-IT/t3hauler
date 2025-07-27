@@ -30,7 +30,7 @@ final readonly class ExportJsonValidator
     public const string MESSAGE_SCHEMA_VALIDATION_FAILED = 'Export file does not conform to schema';
     public const string MESSAGE_VALIDATION_SUCCESS = 'Export file is valid';
 
-    private const string SCHEMA_PATH = __DIR__ . '/../../../Resources/Public/Spec/export.schema.json';
+    private const string SCHEMA_PATH = 'EXT:t3hauler/Resources/Public/Spec/export.schema.json';
 
     /**
      * Validates an export JSON file against the export schema

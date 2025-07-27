@@ -9,11 +9,11 @@ use Cpsit\T3hauler\Command\Option\PathOption;
 use Cpsit\T3hauler\Command\Option\StatusOption;
 use Cpsit\T3hauler\Domain\Model\Migration;
 use Cpsit\T3hauler\Domain\Repository\MigrationFileRepository;
-use Cpsit\T3hauler\Traits\Command\CommandInputOutputTrait;
 use Cpsit\T3hauler\Traits\Command\CommandErrorHandlingTrait;
+use Cpsit\T3hauler\Traits\Command\CommandInputOutputTrait;
+use Cpsit\T3hauler\Traits\Command\CommandOptionsTrait;
 use Cpsit\T3hauler\Traits\Command\CommandProgressTrait;
 use Cpsit\T3hauler\Traits\Command\CommandUtilityTrait;
-use Cpsit\T3hauler\Traits\Command\CommandOptionsTrait;
 use DWenzel\T3extensionTools\Command\OptionAwareInterface;
 use DWenzel\T3extensionTools\Traits\Command\ConfigureTrait;
 use DWenzel\T3extensionTools\Traits\Command\OptionAwareTrait;
@@ -61,7 +61,7 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = $this->initializeIO($input, $output);
-        
+
         return $this->safeExecute(function () use ($input) {
             $format = $input->getOption(ListFormatOption::NAME);
             $statusFilter = $this->getStatus($input);
@@ -228,6 +228,5 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
 
         $this->displaySummaryTable(['Relative Path', 'Absolute Path', 'Status', 'Migrations'], $pathRows, 'Configured Migration Paths');
     }
-
 
 }

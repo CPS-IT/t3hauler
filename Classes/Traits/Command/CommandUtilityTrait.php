@@ -15,7 +15,7 @@ trait CommandUtilityTrait
     protected function formatFileSize(int $bytes): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        $factor = min((int) floor(log($bytes, 1024)), count($units) - 1);
+        $factor = min((int)floor(log($bytes, 1024)), count($units) - 1);
 
         return sprintf('%.1f %s', $bytes / (1024 ** $factor), $units[$factor]);
     }

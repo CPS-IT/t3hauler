@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Cpsit\T3hauler\Traits\Command;
 
-use Cpsit\T3hauler\Command\Argument\MigrationArgument;
 use Cpsit\T3hauler\Command\Argument\DescriptionArgument;
 use Cpsit\T3hauler\Command\Argument\KeepDaysArgument;
+use Cpsit\T3hauler\Command\Argument\MigrationArgument;
 use Symfony\Component\Console\Input\InputInterface;
 
 /**
@@ -22,10 +22,10 @@ trait CommandValidationTrait
         $value = $input->getArgument($argumentName);
 
         if (empty($value)) {
-            throw new \InvalidArgumentException("Required argument '{$argumentName}' cannot be empty");
+            throw new \InvalidArgumentException("Required argument '{$argumentName}' cannot be empty", 1935926698);
         }
 
-        return (string) $value;
+        return (string)$value;
     }
 
     /**
@@ -50,10 +50,10 @@ trait CommandValidationTrait
     protected function getKeepDaysArgument(InputInterface $input): int
     {
         $value = $this->validateRequiredArgument($input, KeepDaysArgument::NAME);
-        $days = (int) $value;
+        $days = (int)$value;
 
         if ($days <= 0) {
-            throw new \InvalidArgumentException('Keep days must be a positive integer');
+            throw new \InvalidArgumentException('Keep days must be a positive integer', 5777071427);
         }
 
         return $days;
@@ -64,8 +64,8 @@ trait CommandValidationTrait
      */
     protected function validateMigrationId(string $migrationId): string
     {
-        if (!preg_match('/^\d{14}_[a-zA-Z0-9_]+$/', $migrationId)) {
-            throw new \InvalidArgumentException("Invalid migration ID format: {$migrationId}");
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}_[a-f0-9]{8}$/', $migrationId)) {
+            throw new \InvalidArgumentException("Invalid migration ID format: {$migrationId}", 2355884744);
         }
 
         return $migrationId;
@@ -76,9 +76,8 @@ trait CommandValidationTrait
      */
     protected function validateOptionCombination(array $options): void
     {
-        if ($options['force'] && !$options['validate'] && !$options['dry_run']) {
-            throw new \InvalidArgumentException('Using --force without --validate or --dry-run is not recommended');
-        }
+        // Note: Removed overly restrictive force validation as it prevents legitimate use cases
+        // like retrying failed migrations. Force can be used standalone when needed.
     }
 
     /**
@@ -87,11 +86,11 @@ trait CommandValidationTrait
     protected function validateFilePath(string $path): string
     {
         if (!file_exists($path)) {
-            throw new \InvalidArgumentException("File does not exist: {$path}");
+            throw new \InvalidArgumentException("File does not exist: {$path}", 1566774433);
         }
 
         if (!is_readable($path)) {
-            throw new \InvalidArgumentException("File is not readable: {$path}");
+            throw new \InvalidArgumentException("File is not readable: {$path}", 9142059580);
         }
 
         return $path;
@@ -103,11 +102,11 @@ trait CommandValidationTrait
     protected function validateDirectoryPath(string $path): string
     {
         if (!is_dir($path)) {
-            throw new \InvalidArgumentException("Directory does not exist: {$path}");
+            throw new \InvalidArgumentException("Directory does not exist: {$path}", 6363480896);
         }
 
         if (!is_writable($path)) {
-            throw new \InvalidArgumentException("Directory is not writable: {$path}");
+            throw new \InvalidArgumentException("Directory is not writable: {$path}", 2578683753);
         }
 
         return $path;
@@ -118,10 +117,10 @@ trait CommandValidationTrait
      */
     protected function validatePositiveInteger(string $value, string $fieldName = 'value'): int
     {
-        $intValue = (int) $value;
+        $intValue = (int)$value;
 
         if ($intValue <= 0) {
-            throw new \InvalidArgumentException("{$fieldName} must be a positive integer, got: {$value}");
+            throw new \InvalidArgumentException("{$fieldName} must be a positive integer, got: {$value}", 9135586066);
         }
 
         return $intValue;

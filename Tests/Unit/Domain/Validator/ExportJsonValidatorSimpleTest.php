@@ -116,15 +116,16 @@ final class ExportJsonValidatorSimpleTest extends TestCase
         $filePath = '/path/to/valid.json';
         $jsonContent = json_encode($data);
         // Mock schema file access
-        $schemaPath = '/Users/d.wenzel/projekt/zug13/app/vendor/cpsit/t3hauler/Classes/Domain/Validator/../../../Resources/Public/Spec/export.schema.json';
+        // The validator now uses EXT: path format
+        $expectedSchemaPath = 'EXT:t3hauler/Resources/Public/Spec/export.schema.json';
 
         $this->filesystem->expects(self::exactly(2))
             ->method('exists')
-            ->willReturnCallback(function ($path) use ($filePath, $schemaPath) {
+            ->willReturnCallback(function ($path) use ($filePath, $expectedSchemaPath) {
                 if ($path === $filePath) {
                     return true;
                 }
-                if ($path === $schemaPath) {
+                if ($path === $expectedSchemaPath) {
                     return true;
                 }
                 return false;
@@ -132,14 +133,23 @@ final class ExportJsonValidatorSimpleTest extends TestCase
 
         $this->filesystem->expects(self::exactly(2))
             ->method('getFileContents')
-            ->willReturnCallback(function ($path) use ($filePath, $schemaPath, $jsonContent) {
+            ->willReturnCallback(function ($path) use ($filePath, $expectedSchemaPath, $jsonContent) {
                 if ($path === $filePath) {
                     return $jsonContent;
                 }
-                if ($path === $schemaPath) {
-                    return file_get_contents($schemaPath);
+                if ($path === $expectedSchemaPath) {
+                    // Return the actual schema content for proper validation
+                    $schemaPath = __DIR__ . '/../../../../Resources/Public/Spec/export.schema.json';
+                    if (!file_exists($schemaPath)) {
+                        throw new \RuntimeException("Schema file not found at: $schemaPath", 5358860946);
+                    }
+                    $schemaContent = file_get_contents($schemaPath);
+                    if ($schemaContent === false) {
+                        throw new \RuntimeException("Could not read schema file at: $schemaPath", 3279334690);
+                    }
+                    return $schemaContent;
                 }
-                return false;
+                return '';
             });
 
         $this->filesystem->expects(self::once())

@@ -10,11 +10,12 @@ use Cpsit\T3hauler\Command\Option\DryRunOption;
 use Cpsit\T3hauler\Command\Option\SiteOption;
 use Cpsit\T3hauler\Service\FilesystemInterface;
 use Cpsit\T3hauler\Service\MigrationService;
-use Cpsit\T3hauler\Traits\Command\CommandInputOutputTrait;
 use Cpsit\T3hauler\Traits\Command\CommandErrorHandlingTrait;
+use Cpsit\T3hauler\Traits\Command\CommandInputOutputTrait;
+use Cpsit\T3hauler\Traits\Command\CommandOptionsTrait;
 use Cpsit\T3hauler\Traits\Command\CommandProgressTrait;
 use Cpsit\T3hauler\Traits\Command\CommandUtilityTrait;
-use Cpsit\T3hauler\Traits\Command\CommandOptionsTrait;
+use Cpsit\T3hauler\Traits\Command\CommandValidationTrait;
 use DWenzel\T3extensionTools\Command\ArgumentAwareInterface;
 use DWenzel\T3extensionTools\Command\OptionAwareInterface;
 use DWenzel\T3extensionTools\Traits\Command\ArgumentAwareTrait;
@@ -45,6 +46,7 @@ class CreateMigrationCommand extends Command implements ArgumentAwareInterface, 
     use CommandProgressTrait;
     use CommandUtilityTrait;
     use CommandOptionsTrait;
+    use CommandValidationTrait;
 
     public const string MESSAGE_DESCRIPTION_COMMAND = 'Create migration from detected changes';
     public const string MESSAGE_HELP_COMMAND = 'This command generates a migration file from the detected database changes.';
@@ -74,7 +76,7 @@ class CreateMigrationCommand extends Command implements ArgumentAwareInterface, 
         $this->initializeIO($input, $output);
 
         return $this->safeExecute(function () use ($input): int {
-            $description = $input->getArgument(DescriptionArgument::NAME);
+            $description = $this->getDescriptionArgument($input);
             $author = $this->getAuthor($input);
             $site = $this->getSite($input);
             $dryRun = $this->isDryRun($input);
@@ -107,7 +109,7 @@ class CreateMigrationCommand extends Command implements ArgumentAwareInterface, 
             $this->reportSuccess('DRY RUN: Migration would be created successfully');
             $this->displaySection('Migration Details');
             $migration = $result['migration'];
-            
+
             $this->getIO()->definitionList(
                 ['Migration ID' => $migration['migration_id']],
                 ['Description' => $migration['description']],

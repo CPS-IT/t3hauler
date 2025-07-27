@@ -19,7 +19,6 @@ final class ExportJsonValidatorTest extends TestCase
 {
     private ExportJsonValidator $subject;
     private MockObject&FilesystemInterface $filesystem;
-    private string $schemaPath;
 
     protected function setUp(): void
     {
@@ -27,7 +26,6 @@ final class ExportJsonValidatorTest extends TestCase
 
         $this->filesystem = $this->createMock(FilesystemInterface::class);
         $this->subject = new ExportJsonValidator($this->filesystem);
-        $this->schemaPath = '/Users/d.wenzel/projekt/zug13/app/vendor/cpsit/t3hauler/Classes/Domain/Validator/../../../Resources/Public/Spec/export.schema.json';
     }
 
     #[Test]
@@ -519,20 +517,32 @@ final class ExportJsonValidatorTest extends TestCase
 
     private function setupFilesystemMock(string $filePath, string $content, bool $includeFileSize = false): void
     {
+        // The validator now uses EXT: path format
+        $expectedSchemaPath = 'EXT:t3hauler/Resources/Public/Spec/export.schema.json';
+
         $this->filesystem->expects(self::exactly(2))
             ->method('exists')
-            ->willReturnCallback(function (string $path) use ($filePath): bool {
-                return $path === $filePath || $path === $this->schemaPath;
+            ->willReturnCallback(function (string $path) use ($filePath, $expectedSchemaPath): bool {
+                return $path === $filePath || $path === $expectedSchemaPath;
             });
 
         $this->filesystem->expects(self::exactly(2))
             ->method('getFileContents')
-            ->willReturnCallback(function (string $path) use ($filePath, $content): string {
+            ->willReturnCallback(function (string $path) use ($filePath, $content, $expectedSchemaPath): string {
                 if ($path === $filePath) {
                     return $content;
                 }
-                if ($path === $this->schemaPath) {
-                    return file_get_contents($this->schemaPath);
+                if ($path === $expectedSchemaPath) {
+                    // Return the actual schema content for proper validation
+                    $schemaPath = __DIR__ . '/../../../../Resources/Public/Spec/export.schema.json';
+                    if (!file_exists($schemaPath)) {
+                        throw new \RuntimeException("Schema file not found at: $schemaPath", 8438523214);
+                    }
+                    $schemaContent = file_get_contents($schemaPath);
+                    if ($schemaContent === false) {
+                        throw new \RuntimeException("Could not read schema file at: $schemaPath", 2700295526);
+                    }
+                    return $schemaContent;
                 }
                 return '';
             });

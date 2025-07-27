@@ -5,7 +5,9 @@
       "Bash(composer test:*)",
       "Bash(composer sca:*)",
       "Bash(phpunit:*)",
-      "Bash(.build/bin/phpunit -c phpunit.functional.xml --filter EndToEndChangeTrackingTest)"
+      "Bash(.build/bin/phpunit -c phpunit.functional.xml --filter EndToEndChangeTrackingTest)",
+      "Bash(composer fix:php:*)",
+      "Bash(composer fix:rector:*)"
     ],
     "deny": []
   }

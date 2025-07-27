@@ -73,7 +73,7 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Should complete successfully and show either migrations or warning
         self::assertNotEmpty(trim($output));
     }
@@ -88,10 +88,10 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Verify trait-based warning reporting
         self::assertStringContainsString('No migrations found in configured paths', $output);
-        
+
         // Should display migration paths information using trait methods
         self::assertStringContainsString('No migration paths configured', $output);
     }
@@ -108,7 +108,7 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Command should handle the status filter gracefully and show appropriate output
         self::assertNotEmpty(trim($output));
     }
@@ -125,7 +125,7 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Command should handle the path filter gracefully
         self::assertNotEmpty(trim($output));
     }
@@ -142,7 +142,7 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Command should handle JSON format option
         self::assertNotEmpty(trim($output));
     }
@@ -159,7 +159,7 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Command should handle table format option
         self::assertNotEmpty(trim($output));
     }
@@ -178,7 +178,7 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Command should handle multiple options gracefully using trait methods
         self::assertNotEmpty(trim($output));
     }
@@ -191,10 +191,10 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
     {
         // Command should handle exceptions using trait-based error handling
         $exitCode = $this->commandTester->execute([]);
-        
+
         // Command should either succeed or fail gracefully
         self::assertContains($exitCode, [Command::SUCCESS, Command::FAILURE]);
-        
+
         // Should produce some output
         $output = $this->commandTester->getDisplay();
         self::assertNotEmpty(trim($output));
@@ -212,7 +212,7 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Verify verbose output includes expected information
         self::assertNotEmpty(trim($output));
     }
@@ -227,10 +227,10 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Verify trait-based methods are used for output formatting
         // Warning should be displayed using reportWarning() trait method if no migrations
-        if (strpos($output, 'No migrations found') !== false) {
+        if (str_contains($output, 'No migrations found')) {
             self::assertStringContainsString('No migrations found in configured paths', $output);
         } else {
             // If migrations are found, title should be displayed
@@ -250,7 +250,7 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
 
         self::assertSame(Command::SUCCESS, $exitCode);
         $output = $this->commandTester->getDisplay();
-        
+
         // Verify trait-based table display is working
         self::assertNotEmpty(trim($output));
     }
@@ -269,7 +269,7 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
         ]);
 
         self::assertSame(Command::SUCCESS, $exitCode);
-        
+
         // Command should execute successfully with trait-based option extraction
         $output = $this->commandTester->getDisplay();
         self::assertNotEmpty(trim($output));
@@ -287,7 +287,7 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
 
         // Command should handle invalid status gracefully
         self::assertContains($exitCode, [Command::SUCCESS, Command::FAILURE]);
-        
+
         // Should produce some output
         $output = $this->commandTester->getDisplay();
         self::assertNotEmpty(trim($output));
@@ -303,14 +303,14 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
         $exitCode = $this->commandTester->execute([]);
 
         self::assertSame(Command::SUCCESS, $exitCode);
-        
+
         $output = $this->commandTester->getDisplay();
-        
+
         // Should have proper output using trait methods
         self::assertNotEmpty(trim($output));
-        
+
         // If no migrations, should show warning message
-        if (strpos($output, 'No migrations found') !== false) {
+        if (str_contains($output, 'No migrations found')) {
             self::assertStringContainsString('No migrations found in configured paths', $output);
         }
     }
@@ -325,14 +325,14 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
 
         // Command should execute successfully
         self::assertSame(Command::SUCCESS, $exitCode);
-        
+
         $output = $this->commandTester->getDisplay();
-        
+
         // Should produce output and handle the case where no migrations are found appropriately
         self::assertNotEmpty(trim($output));
-        
+
         // Should handle the case where no migrations are found
-        if (strpos($output, 'No migrations found') !== false) {
+        if (str_contains($output, 'No migrations found')) {
             self::assertStringContainsString('No migrations found in configured paths', $output);
         } else {
             // If migrations exist, should show the title
@@ -350,7 +350,7 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
 
         // The safeExecute wrapper should ensure the command always returns a valid exit code
         self::assertContains($exitCode, [Command::SUCCESS, Command::FAILURE, Command::INVALID]);
-        
+
         $output = $this->commandTester->getDisplay();
         self::assertNotEmpty(trim($output));
     }
@@ -368,7 +368,7 @@ final class ListMigrationsCommandTest extends FunctionalTestCase
         ]);
 
         self::assertSame(Command::SUCCESS, $exitCode);
-        
+
         // Options should be processed correctly by trait methods
         $output = $this->commandTester->getDisplay();
         self::assertNotEmpty(trim($output));

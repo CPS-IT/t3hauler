@@ -13,10 +13,9 @@ use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Domain\Model\DataSnapshot;
 use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
 use Cpsit\T3hauler\Traits\Command\CommandInputOutputTrait;
-use Cpsit\T3hauler\Traits\Command\CommandErrorHandlingTrait;
+use Cpsit\T3hauler\Traits\Command\CommandOptionsTrait;
 use Cpsit\T3hauler\Traits\Command\CommandProgressTrait;
 use Cpsit\T3hauler\Traits\Command\CommandUtilityTrait;
-use Cpsit\T3hauler\Traits\Command\CommandOptionsTrait;
 use DWenzel\T3extensionTools\Command\OptionAwareInterface;
 use DWenzel\T3extensionTools\Traits\Command\ConfigureTrait;
 use DWenzel\T3extensionTools\Traits\Command\OptionAwareTrait;
@@ -24,7 +23,6 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Command to list all existing snapshots
@@ -74,7 +72,7 @@ class ListSnapshotsCommand extends Command implements OptionAwareInterface
             $direction = $input->getOption('direction') ?? 'desc';
             $limit = $this->getLimit($input);
             $filter = $this->getFilter($input);
-            $showDetails = (bool) $input->getOption('details');
+            $showDetails = (bool)$input->getOption('details');
 
             // Get snapshots from repository
             $snapshots = $this->getSnapshots($orderBy, $direction, $limit, $filter);
@@ -98,7 +96,7 @@ class ListSnapshotsCommand extends Command implements OptionAwareInterface
             $this->displaySnapshotSummary($snapshots);
 
             return Command::SUCCESS;
-            
+
         } catch (\Exception $e) {
             $io = $this->getIO();
             $io->error('Command failed: ' . $e->getMessage());
