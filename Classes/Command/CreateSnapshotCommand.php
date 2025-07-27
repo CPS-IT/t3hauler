@@ -7,6 +7,11 @@ namespace Cpsit\T3hauler\Command;
 use Cpsit\T3hauler\Command\Option\IdentifierOption;
 use Cpsit\T3hauler\Command\Option\MigrationVersionOption;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
+use Cpsit\T3hauler\Traits\Command\CommandInputOutputTrait;
+use Cpsit\T3hauler\Traits\Command\CommandErrorHandlingTrait;
+use Cpsit\T3hauler\Traits\Command\CommandProgressTrait;
+use Cpsit\T3hauler\Traits\Command\CommandUtilityTrait;
+use Cpsit\T3hauler\Traits\Command\CommandOptionsTrait;
 use DWenzel\T3extensionTools\Command\OptionAwareInterface;
 use DWenzel\T3extensionTools\Traits\Command\ConfigureTrait;
 use DWenzel\T3extensionTools\Traits\Command\OptionAwareTrait;
@@ -14,7 +19,6 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Command to create or manage database snapshots
@@ -28,6 +32,11 @@ class CreateSnapshotCommand extends Command implements OptionAwareInterface
 {
     use OptionAwareTrait;
     use ConfigureTrait;
+    use CommandInputOutputTrait;
+    use CommandErrorHandlingTrait;
+    use CommandProgressTrait;
+    use CommandUtilityTrait;
+    use CommandOptionsTrait;
 
     public const string MESSAGE_DESCRIPTION_COMMAND = 'Create database snapshots';
     public const string MESSAGE_HELP_COMMAND = 'This command allows you to create baseline snapshots for change detection.';
@@ -50,50 +59,49 @@ class CreateSnapshotCommand extends Command implements OptionAwareInterface
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $io = new SymfonyStyle($input, $output);
-        $identifier = $input->getOption(IdentifierOption::NAME);
-        $migrationVersion = $input->getOption(MigrationVersionOption::NAME);
+        $this->initializeIO($input, $output);
 
-        $io->title('t3hauler - Create Snapshot');
+        return $this->safeExecute(function () use ($input): int {
+            $identifier = $this->getIdentifier($input);
+            $migrationVersion = $this->getMigrationVersion($input);
 
-        try {
-            return $this->createSnapshot($io, $identifier, $migrationVersion);
-        } catch (\Exception $e) {
-            $io->error('Error managing snapshots: ' . $e->getMessage());
-            return Command::FAILURE;
-        }
+            $this->displayCommandTitle('t3hauler - Create Snapshot');
+
+            return $this->createSnapshot($identifier, $migrationVersion);
+        }, 'Creating snapshot');
     }
 
-    private function createSnapshot(SymfonyStyle $io, ?string $identifier, ?string $migrationVersion): int
+    private function createSnapshot(?string $identifier, ?string $migrationVersion): int
     {
-        $io->section('Creating Snapshot');
+        $this->displaySection('Creating Snapshot');
 
-        $io->note("Creating snapshot with identifier: {$identifier}");
+        $this->reportNote("Creating snapshot with identifier: {$identifier}");
 
         if ($migrationVersion !== null) {
-            $io->note("Associated with migration version: {$migrationVersion}");
+            $this->reportNote("Associated with migration version: {$migrationVersion}");
         }
 
         $snapshots = $this->changeDetectionService->createSnapshot($identifier, $migrationVersion);
 
-        $io->success('Snapshot created successfully!');
+        $this->reportSuccess('Snapshot created successfully!');
 
         $rows = [];
         foreach ($snapshots as $snapshot) {
             $rows[] = [
                 $snapshot->getTableName(),
                 $snapshot->getIdentifier(),
-                substr($snapshot->getHash(), 0, 12) . '...',
+                $this->truncateString($snapshot->getHash(), 12),
                 $snapshot->getCreatedAt()->format('Y-m-d H:i:s'),
             ];
         }
 
-        $io->table(
+        $this->displaySummaryTable(
             ['Table', 'Identifier', 'Hash', 'Created At'],
-            $rows
+            $rows,
+            'Snapshots'
         );
 
-        $io->note('This snapshot can now be used as a baseline for change detection.');
+        $this->reportNote('This snapshot can now be used as a baseline for change detection.');
 
         return Command::SUCCESS;
     }

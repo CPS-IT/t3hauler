@@ -12,6 +12,11 @@ use Cpsit\T3hauler\Command\Option\OrderOption;
 use Cpsit\T3hauler\Configuration\T3HaulerConfiguration;
 use Cpsit\T3hauler\Domain\Model\DataSnapshot;
 use Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository;
+use Cpsit\T3hauler\Traits\Command\CommandInputOutputTrait;
+use Cpsit\T3hauler\Traits\Command\CommandErrorHandlingTrait;
+use Cpsit\T3hauler\Traits\Command\CommandProgressTrait;
+use Cpsit\T3hauler\Traits\Command\CommandUtilityTrait;
+use Cpsit\T3hauler\Traits\Command\CommandOptionsTrait;
 use DWenzel\T3extensionTools\Command\OptionAwareInterface;
 use DWenzel\T3extensionTools\Traits\Command\ConfigureTrait;
 use DWenzel\T3extensionTools\Traits\Command\OptionAwareTrait;
@@ -34,6 +39,10 @@ class ListSnapshotsCommand extends Command implements OptionAwareInterface
 {
     use OptionAwareTrait;
     use ConfigureTrait;
+    use CommandInputOutputTrait;
+    use CommandUtilityTrait;
+    use CommandProgressTrait;
+    use CommandOptionsTrait;
 
     public const string MESSAGE_DESCRIPTION_COMMAND = 'List all existing snapshots';
     public const string MESSAGE_HELP_COMMAND = 'This command lists all snapshots stored in the database with their metadata and statistics.';
@@ -57,33 +66,42 @@ class ListSnapshotsCommand extends Command implements OptionAwareInterface
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $io = new SymfonyStyle($input, $output);
-        $limit = $input->getOption(LimitOption::NAME) ? (int)$input->getOption(LimitOption::NAME) : null;
-        $orderBy = $input->getOption(OrderOption::NAME);
-        $direction = $input->getOption(DirectionOption::NAME);
-        $filter = $input->getOption(FilterOption::NAME);
-        $showDetails = $input->getOption(DetailsOption::NAME);
+        $this->initializeIO($input, $output);
 
         try {
+            // Get command options with validation
+            $orderBy = $input->getOption('order') ?? 'created_at';
+            $direction = $input->getOption('direction') ?? 'desc';
+            $limit = $this->getLimit($input);
+            $filter = $this->getFilter($input);
+            $showDetails = (bool) $input->getOption('details');
+
+            // Get snapshots from repository
             $snapshots = $this->getSnapshots($orderBy, $direction, $limit, $filter);
 
             if (empty($snapshots)) {
-                $io->warning('No snapshots found');
-                $this->displaySnapshotInfo($io);
+                $this->reportWarning('No snapshots found');
+                $this->displaySnapshotInfo();
                 return Command::SUCCESS;
             }
 
-            $io->title('t3hauler Snapshots');
+            // Display snapshots title
+            $this->displayCommandTitle('t3hauler Snapshots');
 
-            $displayMethod = $showDetails ? 'displayDetailedSnapshots' : 'displaySnapshotsAsTable';
-            $this->{$displayMethod}($io, $snapshots);
+            if ($showDetails) {
+                $this->displayDetailedSnapshots($snapshots);
+            } else {
+                $this->displaySnapshotsAsTable($snapshots);
+            }
 
-            $this->displaySummary($io, $snapshots);
+            // Display summary
+            $this->displaySnapshotSummary($snapshots);
 
             return Command::SUCCESS;
-
+            
         } catch (\Exception $e) {
-            $io->error('Failed to list snapshots: ' . $e->getMessage());
+            $io = $this->getIO();
+            $io->error('Command failed: ' . $e->getMessage());
             return Command::FAILURE;
         }
     }
@@ -130,11 +148,9 @@ class ListSnapshotsCommand extends Command implements OptionAwareInterface
 
     /**
      * Display snapshots as table
-     * @param SymfonyStyle $io
      * @param DataSnapshot[] $snapshots
-     * @noinspection PhpUnusedPrivateMethodInspection
      */
-    private function displaySnapshotsAsTable(SymfonyStyle $io, array $snapshots): void
+    private function displaySnapshotsAsTable(array $snapshots): void
     {
         $rows = [];
 
@@ -142,8 +158,8 @@ class ListSnapshotsCommand extends Command implements OptionAwareInterface
             $createdAt = $snapshot->getCreatedAt()->format('Y-m-d H:i:s');
             $tableData = $snapshot->getMetadataValue('table_data', []);
             $totalRecords = $this->calculateTotalRecords($tableData);
-            $size = $this->formatSize(strlen(json_encode($tableData)));
-            $hash = substr($snapshot->getHash(), 0, 8) . '...';
+            $size = $this->formatFileSize(strlen(json_encode($tableData)));
+            $hash = $this->truncateString($snapshot->getHash(), 10);
 
             $rows[] = [
                 $snapshot->getIdentifier(),
@@ -154,28 +170,27 @@ class ListSnapshotsCommand extends Command implements OptionAwareInterface
             ];
         }
 
-        $io->table([
+        $this->displaySummaryTable([
             'Snapshot ID',
             'Created',
             'Records',
             'Size',
             'Hash',
-        ], $rows);
+        ], $rows, 'Snapshots');
     }
 
     /**
      * Display detailed snapshots information
-     * @noinspection PhpUnusedPrivateMethodInspection
      */
-    private function displayDetailedSnapshots(SymfonyStyle $io, array $snapshots): void
+    private function displayDetailedSnapshots(array $snapshots): void
     {
         foreach ($snapshots as $snapshot) {
-            $io->section('Snapshot: ' . $snapshot->getIdentifier());
+            $this->displaySection('Snapshot: ' . $snapshot->getIdentifier());
 
             $tableData = $snapshot->getMetadataValue('table_data', []);
             $tables = is_array($tableData) ? count($tableData) : 0;
             $totalRecords = $this->calculateTotalRecords($tableData);
-            $size = $this->formatSize(strlen(json_encode($tableData)));
+            $size = $this->formatFileSize(strlen(json_encode($tableData)));
 
             $info = [
                 ['Created', $snapshot->getCreatedAt()->format('Y-m-d H:i:s')],
@@ -185,7 +200,7 @@ class ListSnapshotsCommand extends Command implements OptionAwareInterface
                 ['Size', $size],
             ];
 
-            $io->table(['Property', 'Value'], $info);
+            $this->displaySummaryTable(['Property', 'Value'], $info, 'Details');
 
             if (!empty($tableData)) {
                 $tableRows = [];
@@ -194,17 +209,17 @@ class ListSnapshotsCommand extends Command implements OptionAwareInterface
                     $tableRows[] = [$tableName, number_format($recordCount)];
                 }
 
-                $io->table(['Table', 'Records'], $tableRows);
+                $this->displaySummaryTable(['Table', 'Records'], $tableRows, 'Table Data');
             }
 
-            $io->newLine();
+            $this->getIO()->newLine();
         }
     }
 
     /**
      * Display summary information
      */
-    private function displaySummary(SymfonyStyle $io, array $snapshots): void
+    private function displaySnapshotSummary(array $snapshots): void
     {
         if (empty($snapshots)) {
             return;
@@ -232,13 +247,11 @@ class ListSnapshotsCommand extends Command implements OptionAwareInterface
             }
         }
 
-        $io->section('Summary');
-
         $summaryData = [
             ['Total snapshots', $totalSnapshots],
             ['Total tables', number_format($totalTables)],
             ['Total records', number_format($totalRecords)],
-            ['Total size', $this->formatSize($totalSize)],
+            ['Total size', $this->formatFileSize($totalSize)],
             ['Average records per snapshot', number_format($totalRecords / $totalSnapshots)],
         ];
 
@@ -250,59 +263,31 @@ class ListSnapshotsCommand extends Command implements OptionAwareInterface
             $summaryData[] = ['Newest snapshot', $newestSnapshot->getIdentifier() . ' (' . $newestSnapshot->getCreatedAt()->format('Y-m-d H:i:s') . ')'];
         }
 
-        $io->table(['Metric', 'Value'], $summaryData);
+        $this->displaySummaryTable(['Metric', 'Value'], $summaryData, 'Snapshot Summary');
     }
 
     /**
      * Display snapshot configuration info
      */
-    private function displaySnapshotInfo(SymfonyStyle $io): void
+    private function displaySnapshotInfo(): void
     {
-        $io->section('Snapshot Configuration');
+        $this->displaySection('Snapshot Configuration');
 
         $enabledTables = $this->configuration->get('t3hauler.detection.enabledTables', []);
         $excludeFields = $this->configuration->get('t3hauler.detection.excludeFields', []);
 
         if (empty($enabledTables)) {
-            $io->text('No tables configured for snapshot creation');
-            $io->note('Configure detection.enabledTables to enable snapshot creation');
+            $this->reportInfo('No tables configured for snapshot creation');
+            $this->reportNote('Configure detection.enabledTables to enable snapshot creation');
         } else {
-            $io->text('Enabled tables: ' . implode(', ', $enabledTables));
+            $this->reportInfo('Enabled tables: ' . implode(', ', $enabledTables));
         }
 
         if (!empty($excludeFields)) {
-            $io->text('Excluded fields: ' . implode(', ', $excludeFields));
+            $this->reportInfo('Excluded fields: ' . implode(', ', $excludeFields));
         }
 
-        $io->text('To create a snapshot, use: t3hauler:snapshot:create');
+        $this->reportInfo('To create a snapshot, use: t3hauler:snapshot:create');
     }
 
-    /**
-     * Calculate total records in snapshot
-     */
-    private function calculateTotalRecords(mixed $tableData): int
-    {
-        if (!is_array($tableData)) {
-            return 0;
-        }
-
-        $total = 0;
-        foreach ($tableData as $data) {
-            if (is_array($data)) {
-                $total += count($data);
-            }
-        }
-        return $total;
-    }
-
-    /**
-     * Format byte size in human readable format
-     */
-    private function formatSize(int $bytes): string
-    {
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $factor = floor((strlen((string)$bytes) - 1) / 3);
-
-        return sprintf('%.1f %s', $bytes / (1024 ** $factor), $units[$factor] ?? 'TB');
-    }
 }

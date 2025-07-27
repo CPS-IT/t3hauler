@@ -9,6 +9,11 @@ use Cpsit\T3hauler\Command\Option\SummaryOption;
 use Cpsit\T3hauler\Command\Option\TableOption;
 use Cpsit\T3hauler\Domain\Enumeration\TableStatus;
 use Cpsit\T3hauler\Service\ChangeDetectionService;
+use Cpsit\T3hauler\Traits\Command\CommandInputOutputTrait;
+use Cpsit\T3hauler\Traits\Command\CommandErrorHandlingTrait;
+use Cpsit\T3hauler\Traits\Command\CommandProgressTrait;
+use Cpsit\T3hauler\Traits\Command\CommandUtilityTrait;
+use Cpsit\T3hauler\Traits\Command\CommandOptionsTrait;
 use DWenzel\T3extensionTools\Command\OptionAwareInterface;
 use DWenzel\T3extensionTools\Traits\Command\ConfigureTrait;
 use DWenzel\T3extensionTools\Traits\Command\OptionAwareTrait;
@@ -16,7 +21,6 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Command to show pending changes since last snapshot
@@ -30,6 +34,11 @@ class DiffCommand extends Command implements OptionAwareInterface
 {
     use OptionAwareTrait;
     use ConfigureTrait;
+    use CommandInputOutputTrait;
+    use CommandErrorHandlingTrait;
+    use CommandProgressTrait;
+    use CommandUtilityTrait;
+    use CommandOptionsTrait;
 
     public const string MESSAGE_DESCRIPTION_COMMAND = 'Show pending changes since last snapshot';
     public const string MESSAGE_HELP_COMMAND = 'This command compares the current database state with the last snapshot to show what has changed.';
@@ -53,42 +62,39 @@ class DiffCommand extends Command implements OptionAwareInterface
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $io = new SymfonyStyle($input, $output);
-        $baseline = $input->getOption(BaselineOption::NAME);
-        $summaryOnly = $input->getOption(SummaryOption::NAME);
-        $specificTable = $input->getOption(TableOption::NAME);
+        $this->initializeIO($input, $output);
 
-        $io->title('t3hauler - Change Detection');
+        return $this->safeExecute(function () use ($input): int {
+            $baseline = $input->getOption(BaselineOption::NAME);
+            $summaryOnly = $input->getOption(SummaryOption::NAME);
+            $specificTable = $this->getTable($input);
 
-        try {
+            $this->displayCommandTitle('t3hauler - Change Detection');
+
             if ($specificTable) {
-                return $this->showTableChanges($io, $specificTable, $baseline);
+                return $this->showTableChanges($specificTable, $baseline);
             }
 
             if ($summaryOnly) {
-                return $this->showChangesSummary($io, $baseline);
+                return $this->showChangesSummary($baseline);
             }
 
-            return $this->showDetailedChanges($io, $baseline);
-
-        } catch (\Exception $e) {
-            $io->error('Error detecting changes: ' . $e->getMessage());
-            return Command::FAILURE;
-        }
+            return $this->showDetailedChanges($baseline);
+        }, 'Detecting changes');
     }
 
-    private function showChangesSummary(SymfonyStyle $io, ?string $baseline): int
+    private function showChangesSummary(?string $baseline): int
     {
         $summary = $this->changeDetectionService->getChangesSummary($baseline);
 
-        $io->section('Changes Summary');
+        $this->displaySection('Changes Summary');
 
         if (!$summary->hasChanges) {
-            $io->success('No changes detected since last snapshot.');
+            $this->reportSuccess('No changes detected since last snapshot.');
             return Command::SUCCESS;
         }
 
-        $io->table(
+        $this->displaySummaryTable(
             ['Category', 'Count', 'Tables'],
             [
                 [
@@ -106,23 +112,24 @@ class DiffCommand extends Command implements OptionAwareInterface
                     count($summary->noBaselineTables),
                     implode(', ', $summary->noBaselineTables),
                 ],
-            ]
+            ],
+            'Changes Summary'
         );
 
         $totalChanged = count($summary->changedTables) + count($summary->noBaselineTables);
         if ($totalChanged > 0) {
-            $io->warning("Changes detected in {$totalChanged} table(s). Use 't3hauler:create' to generate a migration.");
+            $this->reportWarning("Changes detected in {$totalChanged} table(s). Use 't3hauler:create' to generate a migration.");
         }
 
         return Command::SUCCESS;
     }
 
-    private function showDetailedChanges(SymfonyStyle $io, ?string $baseline): int
+    private function showDetailedChanges(?string $baseline): int
     {
         $changes = $this->changeDetectionService->detectChanges($baseline);
 
         if (empty($changes->tableChanges)) {
-            $io->success('No tables configured for change detection.');
+            $this->reportSuccess('No tables configured for change detection.');
             return Command::SUCCESS;
         }
 
@@ -142,13 +149,13 @@ class DiffCommand extends Command implements OptionAwareInterface
 
         // If all tables have no baseline, show the specific message expected by the test
         if ($allTablesHaveNoBaseline) {
-            $io->info('No baseline snapshot found');
+            $this->reportInfo('No baseline snapshot found');
             return Command::SUCCESS;
         }
 
         // If there are no actual changes (only unchanged or no_baseline), show success message
         if (!$hasActualChanges) {
-            $io->success('No changes detected since last snapshot.');
+            $this->reportSuccess('No changes detected since last snapshot.');
             return Command::SUCCESS;
         }
 
@@ -174,28 +181,27 @@ class DiffCommand extends Command implements OptionAwareInterface
             ];
         }
 
-        $io->section('Detailed Change Detection Results');
-
-        $io->table(
+        $this->displaySummaryTable(
             ['Table', 'Status', 'Changed', 'Current Hash', 'Baseline Hash'],
-            $rows
+            $rows,
+            'Detailed Change Detection Results'
         );
 
-        $io->warning('Changes detected! Use \'t3hauler:create\' to generate a migration.');
+        $this->reportWarning('Changes detected! Use \'t3hauler:create\' to generate a migration.');
 
         return Command::SUCCESS;
     }
 
-    private function showTableChanges(SymfonyStyle $io, string $tableName, ?string $baseline): int
+    private function showTableChanges(string $tableName, ?string $baseline): int
     {
-        $io->section("Changes for table: {$tableName}");
+        $this->displaySection("Changes for table: {$tableName}");
 
         $tableChanges = $this->changeDetectionService->detectTableChanges($tableName, [], $baseline);
 
         $status = $tableChanges->status;
         $changed = $tableChanges->hasChanges;
 
-        $io->definitionList(
+        $this->getIO()->definitionList(
             ['Table' => $tableName],
             ['Status' => $status->value],
             ['Changed' => $changed ? 'Yes' : 'No'],
@@ -205,13 +211,13 @@ class DiffCommand extends Command implements OptionAwareInterface
         );
 
         if ($tableChanges->baselineCreatedAt !== null) {
-            $io->note('Baseline created: ' . $tableChanges->baselineCreatedAt->format('Y-m-d H:i:s'));
+            $this->reportNote('Baseline created: ' . $tableChanges->baselineCreatedAt->format('Y-m-d H:i:s'));
         }
 
         if ($changed) {
-            $io->warning('Changes detected in this table.');
+            $this->reportWarning('Changes detected in this table.');
         } else {
-            $io->success('No changes detected in this table.');
+            $this->reportSuccess('No changes detected in this table.');
         }
 
         return Command::SUCCESS;

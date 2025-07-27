@@ -48,6 +48,10 @@ services:
       $hashUtility: '@Cpsit\T3hauler\Utility\HashUtility'
       $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
 
+  # Configuration service
+  Cpsit\T3hauler\Configuration\T3HaulerConfiguration:
+    public: true
+
   # Repositories with proper database connection
   Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository:
     public: true
@@ -64,6 +68,7 @@ services:
       $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
 
   Cpsit\T3hauler\Domain\Repository\MigrationFileRepository:
+    public: true
     arguments:
       $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
       $filesystem: '@Cpsit\T3hauler\Service\FilesystemInterface'
@@ -95,6 +100,15 @@ services:
     arguments:
       $migrationService: '@Cpsit\T3hauler\Service\MigrationService'
       $filesystem: '@Cpsit\T3hauler\Service\FilesystemInterface'
+
+  Cpsit\T3hauler\Command\ListMigrationsCommand:
+    arguments:
+      $migrationFileRepository: '@Cpsit\T3hauler\Domain\Repository\MigrationFileRepository'
+
+  Cpsit\T3hauler\Command\ListSnapshotsCommand:
+    arguments:
+      $configuration: '@Cpsit\T3hauler\Configuration\T3HaulerConfiguration'
+      $snapshotRepository: '@Cpsit\T3hauler\Domain\Repository\DataSnapshotRepository'
 
   # Validators
   Cpsit\T3hauler\Domain\Validator\ExportJsonValidator:

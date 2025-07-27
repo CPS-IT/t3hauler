@@ -10,6 +10,11 @@ use Cpsit\T3hauler\Command\Option\DryRunOption;
 use Cpsit\T3hauler\Command\Option\SiteOption;
 use Cpsit\T3hauler\Service\FilesystemInterface;
 use Cpsit\T3hauler\Service\MigrationService;
+use Cpsit\T3hauler\Traits\Command\CommandInputOutputTrait;
+use Cpsit\T3hauler\Traits\Command\CommandErrorHandlingTrait;
+use Cpsit\T3hauler\Traits\Command\CommandProgressTrait;
+use Cpsit\T3hauler\Traits\Command\CommandUtilityTrait;
+use Cpsit\T3hauler\Traits\Command\CommandOptionsTrait;
 use DWenzel\T3extensionTools\Command\ArgumentAwareInterface;
 use DWenzel\T3extensionTools\Command\OptionAwareInterface;
 use DWenzel\T3extensionTools\Traits\Command\ArgumentAwareTrait;
@@ -19,7 +24,6 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Command to create migration from detected changes
@@ -36,6 +40,11 @@ class CreateMigrationCommand extends Command implements ArgumentAwareInterface, 
     use ArgumentAwareTrait;
     use OptionAwareTrait;
     use ConfigureTrait;
+    use CommandInputOutputTrait;
+    use CommandErrorHandlingTrait;
+    use CommandProgressTrait;
+    use CommandUtilityTrait;
+    use CommandOptionsTrait;
 
     public const string MESSAGE_DESCRIPTION_COMMAND = 'Create migration from detected changes';
     public const string MESSAGE_HELP_COMMAND = 'This command generates a migration file from the detected database changes.';
@@ -62,15 +71,20 @@ class CreateMigrationCommand extends Command implements ArgumentAwareInterface, 
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $io = new SymfonyStyle($input, $output);
-        $description = $input->getArgument(DescriptionArgument::NAME);
-        $author = $input->getOption(AuthorOption::NAME);
-        $site = $input->getOption(SiteOption::NAME);
-        $dryRun = $input->getOption(DryRunOption::NAME);
+        $this->initializeIO($input, $output);
 
-        $io->title('t3hauler - Create Migration');
+        return $this->safeExecute(function () use ($input): int {
+            $description = $input->getArgument(DescriptionArgument::NAME);
+            $author = $this->getAuthor($input);
+            $site = $this->getSite($input);
+            $dryRun = $this->isDryRun($input);
 
-        try {
+            $this->displayCommandTitle('t3hauler - Create Migration');
+
+            if ($dryRun) {
+                $this->reportDryRunMode();
+            }
+
             // Create migration using the service
             $result = $this->migrationService->createMigration(
                 $description,
@@ -80,78 +94,76 @@ class CreateMigrationCommand extends Command implements ArgumentAwareInterface, 
             );
 
             if (!$result['success']) {
-                $io->error($result['message']);
-                return Command::FAILURE;
+                return $this->reportValidationError($result['message']);
             }
 
-            if ($dryRun) {
-                $io->success('DRY RUN: Migration would be created successfully');
-                $io->section('Migration Details');
-                $migration = $result['migration'];
-                $io->definitionList(
-                    ['Migration ID' => $migration['migration_id']],
-                    ['Description' => $migration['description']],
-                    ['Author' => $migration['author']],
-                    ['Site' => $migration['site'] ?? 'N/A'],
-                    ['Export File' => $migration['export_file']],
-                    ['Format' => $migration['format']],
-                );
-
-                $this->showChangesSummary($io, $migration['changes']);
-
-                return Command::SUCCESS;
-            }
-
-            // Show success message for actual creation
-            $io->success($result['message']);
-
-            $migration = $result['migration'];
-            $io->section('Migration Created');
-            $io->definitionList(
-                ['Migration ID' => $migration->getMigrationId()],
-                ['Name' => $migration->getName()],
-                ['Author' => $migration->getAuthor()],
-                ['Status' => $migration->getStatus()],
-                ['Created At' => $migration->getCreatedAt()->format('Y-m-d H:i:s')],
-                ['Source Hash' => substr($migration->getSourceHash(), 0, 16) . '...']
-            );
-
-            $io->section('Files Created');
-            $io->table(
-                ['Type', 'Path', 'Size'],
-                [
-                    ['Data Export', $result['files']['export_file'], $this->formatFileSize($result['files']['export_file'])],
-                ]
-            );
-
-            if (!empty($result['snapshots'])) {
-                $io->section('Snapshots Created');
-                $rows = [];
-                foreach ($result['snapshots'] as $snapshot) {
-                    $rows[] = [
-                        $snapshot->getTableName(),
-                        $snapshot->getIdentifier(),
-                        substr($snapshot->getHash(), 0, 12) . '...',
-                        $snapshot->getCreatedAt()->format('Y-m-d H:i:s'),
-                    ];
-                }
-                $io->table(['Table', 'Identifier', 'Hash', 'Created At'], $rows);
-            }
-
-            $io->note('Migration is ready to be applied on target systems using \'t3hauler:apply ' . $migration->getMigrationId() . '\'');
-
-            return Command::SUCCESS;
-
-        } catch (\Exception $e) {
-            $io->error('Error creating migration: ' . $e->getMessage());
-            if ($output->isVerbose()) {
-                $io->text('<error>' . $e->getTraceAsString() . '</error>');
-            }
-            return Command::FAILURE;
-        }
+            return $this->displayMigrationResult($result, $dryRun);
+        }, 'Creating migration');
     }
 
-    private function showChangesSummary(SymfonyStyle $io, array $summary): void
+    private function displayMigrationResult(array $result, bool $dryRun): int
+    {
+        if ($dryRun) {
+            $this->reportSuccess('DRY RUN: Migration would be created successfully');
+            $this->displaySection('Migration Details');
+            $migration = $result['migration'];
+            
+            $this->getIO()->definitionList(
+                ['Migration ID' => $migration['migration_id']],
+                ['Description' => $migration['description']],
+                ['Author' => $migration['author']],
+                ['Site' => $migration['site'] ?? 'N/A'],
+                ['Export File' => $migration['export_file']],
+                ['Format' => $migration['format']],
+            );
+
+            $this->showChangesSummary($migration['changes']);
+            return Command::SUCCESS;
+        }
+
+        // Show success message for actual creation
+        $this->reportSuccess($result['message']);
+
+        $migration = $result['migration'];
+        $this->displaySection('Migration Created');
+        $this->getIO()->definitionList(
+            ['Migration ID' => $migration->getMigrationId()],
+            ['Name' => $migration->getName()],
+            ['Author' => $migration->getAuthor()],
+            ['Status' => $migration->getStatus()],
+            ['Created At' => $migration->getCreatedAt()->format('Y-m-d H:i:s')],
+            ['Source Hash' => $this->truncateString($migration->getSourceHash(), 16)]
+        );
+
+        $this->displaySection('Files Created');
+        $this->displaySummaryTable(
+            ['Type', 'Path', 'Size'],
+            [
+                ['Data Export', $result['files']['export_file'], $this->getFileSizeForDisplay($result['files']['export_file'])],
+            ],
+            'Files'
+        );
+
+        if (!empty($result['snapshots'])) {
+            $this->displaySection('Snapshots Created');
+            $rows = [];
+            foreach ($result['snapshots'] as $snapshot) {
+                $rows[] = [
+                    $snapshot->getTableName(),
+                    $snapshot->getIdentifier(),
+                    $this->truncateString($snapshot->getHash(), 12),
+                    $snapshot->getCreatedAt()->format('Y-m-d H:i:s'),
+                ];
+            }
+            $this->displaySummaryTable(['Table', 'Identifier', 'Hash', 'Created At'], $rows, 'Snapshots');
+        }
+
+        $this->reportNote('Migration is ready to be applied on target systems using \'t3hauler:apply ' . $migration->getMigrationId() . '\'');
+
+        return Command::SUCCESS;
+    }
+
+    private function showChangesSummary(array $summary): void
     {
         $rows = [];
 
@@ -168,23 +180,17 @@ class CreateMigrationCommand extends Command implements ArgumentAwareInterface, 
         }
 
         if (!empty($rows)) {
-            $io->table(['Status', 'Count', 'Tables'], $rows);
+            $this->displaySummaryTable(['Status', 'Count', 'Tables'], $rows, 'Changes Summary');
         }
     }
 
-    private function formatFileSize(string $filePath): string
+    private function getFileSizeForDisplay(string $filePath): string
     {
         if (!$this->filesystem->exists($filePath)) {
             return 'N/A';
         }
 
         $size = $this->filesystem->getFileSize($filePath);
-        $units = ['B', 'KB', 'MB', 'GB'];
-
-        for ($i = 0; $size >= 1024 && $i < count($units) - 1; $i++) {
-            $size /= 1024;
-        }
-
-        return round($size, 2) . ' ' . $units[$i];
+        return $this->formatFileSize($size);
     }
 }

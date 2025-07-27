@@ -9,6 +9,11 @@ use Cpsit\T3hauler\Command\Option\PathOption;
 use Cpsit\T3hauler\Command\Option\StatusOption;
 use Cpsit\T3hauler\Domain\Model\Migration;
 use Cpsit\T3hauler\Domain\Repository\MigrationFileRepository;
+use Cpsit\T3hauler\Traits\Command\CommandInputOutputTrait;
+use Cpsit\T3hauler\Traits\Command\CommandErrorHandlingTrait;
+use Cpsit\T3hauler\Traits\Command\CommandProgressTrait;
+use Cpsit\T3hauler\Traits\Command\CommandUtilityTrait;
+use Cpsit\T3hauler\Traits\Command\CommandOptionsTrait;
 use DWenzel\T3extensionTools\Command\OptionAwareInterface;
 use DWenzel\T3extensionTools\Traits\Command\ConfigureTrait;
 use DWenzel\T3extensionTools\Traits\Command\OptionAwareTrait;
@@ -16,7 +21,6 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Command to list all available migrations
@@ -31,6 +35,11 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
 {
     use OptionAwareTrait;
     use ConfigureTrait;
+    use CommandInputOutputTrait;
+    use CommandErrorHandlingTrait;
+    use CommandProgressTrait;
+    use CommandUtilityTrait;
+    use CommandOptionsTrait;
 
     public const string MESSAGE_DESCRIPTION_COMMAND = 'List all available migrations';
     public const string MESSAGE_HELP_COMMAND = 'This command lists all migrations found in the configured migration paths.';
@@ -51,17 +60,18 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $io = new SymfonyStyle($input, $output);
-        $format = $input->getOption(ListFormatOption::NAME);
-        $statusFilter = $input->getOption(StatusOption::NAME);
-        $pathFilter = $input->getOption(PathOption::NAME);
+        $io = $this->initializeIO($input, $output);
+        
+        return $this->safeExecute(function () use ($input) {
+            $format = $input->getOption(ListFormatOption::NAME);
+            $statusFilter = $this->getStatus($input);
+            $pathFilter = $this->getPath($input);
 
-        try {
             $migrations = $this->findAllMigrations($pathFilter);
 
             if (empty($migrations)) {
-                $io->warning('No migrations found in configured paths');
-                $this->displayMigrationPaths($io);
+                $this->reportWarning('No migrations found in configured paths');
+                $this->displayMigrationPaths();
                 return Command::SUCCESS;
             }
 
@@ -72,21 +82,17 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
                 });
             }
 
-            $io->title('t3hauler Migrations');
+            $this->displayCommandTitle('t3hauler Migrations');
 
             if (!empty($migrations)) {
-                $this->displayMigrations($io, $migrations, $format);
-                $this->displaySummary($io, $migrations);
+                $this->displayMigrations($migrations, $format);
+                $this->displayMigrationSummary($migrations);
             } else {
-                $io->info('No migrations found matching the specified criteria');
+                $this->reportInfo('No migrations found matching the specified criteria');
             }
 
             return Command::SUCCESS;
-
-        } catch (\Exception $e) {
-            $io->error('Failed to list migrations: ' . $e->getMessage());
-            return Command::FAILURE;
-        }
+        }, 'List migrations');
     }
 
     /**
@@ -125,16 +131,16 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
     /**
      * Display migrations in the specified format
      */
-    private function displayMigrations(SymfonyStyle $io, array $migrations, string $format): void
+    private function displayMigrations(array $migrations, string $format): void
     {
         switch ($format) {
             case 'json':
-                $io->text(json_encode($migrations, JSON_PRETTY_PRINT));
+                $this->reportInfo(json_encode($migrations, JSON_PRETTY_PRINT));
                 break;
 
             case 'table':
             default:
-                $this->displayMigrationsAsTable($io, $migrations);
+                $this->displayMigrationsAsTable($migrations);
                 break;
         }
     }
@@ -142,7 +148,7 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
     /**
      * Display migrations as table
      */
-    private function displayMigrationsAsTable(SymfonyStyle $io, array $migrations): void
+    private function displayMigrationsAsTable(array $migrations): void
     {
         $rows = [];
 
@@ -160,7 +166,7 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
             ];
         }
 
-        $io->table([
+        $this->displaySummaryTable([
             'Migration ID',
             'Description',
             'Created',
@@ -168,13 +174,13 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
             'Tables',
             'Records',
             'Path',
-        ], $rows);
+        ], $rows, 'Available Migrations');
     }
 
     /**
      * Display summary information
      */
-    private function displaySummary(SymfonyStyle $io, array $migrations): void
+    private function displayMigrationSummary(array $migrations): void
     {
         $statusCounts = [];
         foreach ($migrations as $migration) {
@@ -183,8 +189,6 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
         }
         $totalRecords = array_sum(array_column($migrations, 'records'));
         $totalTables = array_sum(array_column($migrations, 'tables'));
-
-        $io->section('Summary');
 
         $summaryData = [
             ['Total migrations', count($migrations)],
@@ -196,20 +200,18 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
             $summaryData[] = [ucfirst($status) . ' migrations', $count];
         }
 
-        $io->table(['Metric', 'Value'], $summaryData);
+        $this->displaySummaryTable(['Metric', 'Value'], $summaryData, 'Migration Summary');
     }
 
     /**
      * Display configured migration paths
      */
-    private function displayMigrationPaths(SymfonyStyle $io): void
+    private function displayMigrationPaths(): void
     {
         $pathInfo = $this->migrationFileRepository->validatePaths();
 
-        $io->section('Configured Migration Paths');
-
         if (empty($pathInfo)) {
-            $io->text('No migration paths configured');
+            $this->reportInfo('No migration paths configured');
             return;
         }
 
@@ -224,15 +226,8 @@ class ListMigrationsCommand extends Command implements OptionAwareInterface
             ];
         }
 
-        $io->table(['Relative Path', 'Absolute Path', 'Status', 'Migrations'], $pathRows);
+        $this->displaySummaryTable(['Relative Path', 'Absolute Path', 'Status', 'Migrations'], $pathRows, 'Configured Migration Paths');
     }
 
-    /**
-     * Format timestamp from migration ID
-     */
-    private function formatTimestamp(int $timestamp): string
-    {
-        return date('Y-m-d H:i:s', $timestamp);
-    }
 
 }

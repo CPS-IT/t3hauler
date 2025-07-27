@@ -127,7 +127,11 @@ final class ApplyMigrationCommandTest extends FunctionalTestCase
         self::assertSame(Command::FAILURE, $exitCode);
 
         $output = $this->commandTester->getDisplay();
-        self::assertStringContainsString('Migration file \'nonexistent-migration\' not found', $output);
+        // The new trait-based error handling includes enhanced error output with stack traces
+        // The error message might be wrapped across lines, so check for the core parts separately
+        self::assertStringContainsString('nonexistent-migration', $output);
+        self::assertStringContainsString('found in any migration path', $output);
+        self::assertStringContainsString('Exception: Cpsit\T3hauler\Exception\MigrationNotFoundException', $output);
     }
 
     #[Test]
@@ -262,7 +266,10 @@ final class ApplyMigrationCommandTest extends FunctionalTestCase
         self::assertStringContainsString('Migration failed previously in this instance', $output);
         self::assertStringContainsString('Use --force to retry', $output);
 
-        // Execute command with force - should succeed
+        // Execute command with force - should succeed (reuse the existing CommandTester)
+        // Clear any previous output first by getting the display (which clears it)
+        $this->commandTester->getDisplay(); 
+        
         $exitCode = $this->commandTester->execute([
             'migration' => $migrationId,
             '--force' => true,
@@ -271,6 +278,7 @@ final class ApplyMigrationCommandTest extends FunctionalTestCase
         self::assertSame(Command::SUCCESS, $exitCode);
 
         $output = $this->commandTester->getDisplay();
+        
         self::assertStringContainsString('Force mode enabled - retrying migration', $output);
         self::assertStringContainsString('Migration applied successfully', $output);
     }

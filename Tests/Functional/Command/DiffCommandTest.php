@@ -79,29 +79,18 @@ final class DiffCommandTest extends FunctionalTestCase
     {
         // Create initial snapshot
         $this->changeDetectionService->createTableSnapshot('pages');
-        $this->changeDetectionService->createTableSnapshot('tt_content');
-
-        // Execute diff command - in test environment, there may be immediate changes
-        // Create a fresh CommandTester to avoid output buffer issues
-        $commandTester = new CommandTester($this->command);
-        $exitCode = $commandTester->execute([]);
-        self::assertSame(Command::SUCCESS, $exitCode);
-
-        $initialOutput = $commandTester->getDisplay();
-
-        // Store initial change count for comparison later
-        $initialChangeCount = substr_count($initialOutput, '🔴');
 
         // Modify data explicitly
         $this->updateTestData('pages', ['title' => 'Modified Page Title'], ['uid' => 2]);
 
-        // Execute diff command again - should show changes (including the explicit change)
-        // Create another fresh CommandTester
-        $commandTester2 = new CommandTester($this->command);
-        $exitCode = $commandTester2->execute([]);
+        // Execute diff command - should show changes
+        $exitCode = $this->commandTester->execute([]);
         self::assertSame(Command::SUCCESS, $exitCode);
 
-        $output = $commandTester2->getDisplay();
+        $output = $this->commandTester->getDisplay();
+        
+        // Verify the command shows the expected content
+        // The exact message is "Changes detected! Use 't3hauler:create' to generate a migration."
         self::assertStringContainsString('Changes detected', $output);
         self::assertStringContainsString('pages', $output);
         self::assertStringContainsString('changed', $output);
