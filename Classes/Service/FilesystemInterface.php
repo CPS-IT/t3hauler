@@ -62,4 +62,9 @@ interface FilesystemInterface
      * Get absolute file path using TYPO3 conventions
      */
     public function getAbsoluteFilePath(string $relativePath): string;
+
+    /**
+     * Create directory with permissions
+     */
+    public function createDirectory(string $path, int $permissions = 0755): bool;
 }

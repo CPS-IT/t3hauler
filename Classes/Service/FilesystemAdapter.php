@@ -74,4 +74,18 @@ class FilesystemAdapter implements FilesystemInterface
     {
         return GeneralUtility::getFileAbsFileName($relativePath);
     }
+
+    public function createDirectory(string $path, int $permissions = 0755): bool
+    {
+        // Handle TYPO3 extension paths
+        if (str_starts_with($path, 'EXT:')) {
+            $path = GeneralUtility::getFileAbsFileName($path);
+        }
+
+        if (is_dir($path)) {
+            return true;
+        }
+
+        return mkdir($path, $permissions, true);
+    }
 }

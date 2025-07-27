@@ -142,6 +142,11 @@ class MigrationServiceTest extends TestCase
             ->with('/tmp/migrations')
             ->willReturn(false);
 
+        $this->filesystem->expects(self::once())
+            ->method('createDirectory')
+            ->with('/tmp/migrations')
+            ->willReturn(false);
+
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Failed to create migration directory');
 

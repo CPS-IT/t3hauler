@@ -57,9 +57,7 @@ class MigrationService
 
         //@todo Check and create path with TYPO3 core utilities
         if (!$dryRun && !$this->filesystem->isDirectory($migrationPath)) {
-            /** @noinspection MkdirRaceConditionInspection */
-            /** @noinspection NestedPositiveIfStatementsInspection */
-            if (!mkdir($migrationPath, 0755, true)) {
+            if (!$this->filesystem->createDirectory($migrationPath)) {
                 throw new \RuntimeException('Failed to create migration directory: ' . $migrationPath, 1909123458);
             }
         }
